@@ -25,10 +25,31 @@ const app = express();
 //   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
 //   next();
 // }, express.static(path.join(__dirname, 'public/uploads')));
+// Enhanced static file serving with proper CORS
 app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  // Set CORS headers for static files
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  const isAllowedOrigin = !origin || 
+    allowedOrigins.includes(origin) ||
+    (process.env.NODE_ENV === 'development' && origin) ||
+    (process.env.DOMAIN_NAME && origin && origin.includes(process.env.DOMAIN_NAME));
+  
+  if (isAllowedOrigin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   next();
 }, express.static(path.join(__dirname, '../public/uploads')));
 // app.use('/api/uploads', express.static(path.join(__dirname, 'public/uploads')));
@@ -99,17 +120,29 @@ app.use(helmet({
 //   maxAge: 86400 // 24 hours
 // };
 
-// Configure CORS. In development we allow the requesting origin so the
-// browser receives Access-Control-Allow-Origin and related headers. In
-// production we use a stricter allow-list.
+// Enhanced CORS configuration for VPS deployment
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
   process.env.FRONTEND_URL,
-  process.env.CLIENT_URL
+  process.env.CLIENT_URL,
+  process.env.REACT_APP_API_URL?.replace('/api', ''),
+  // Add common VPS domains
+  process.env.DOMAIN_NAME,
+  `https://${process.env.DOMAIN_NAME}`,
+  `http://${process.env.DOMAIN_NAME}`,
+  // Add IP addresses for VPS
+  process.env.VPS_IP,
+  `http://${process.env.VPS_IP}`,
+  `https://${process.env.VPS_IP}`,
+  `http://${process.env.VPS_IP}:3000`,
+  `http://${process.env.VPS_IP}:5000`
 ].filter(Boolean);
 
+// Enhanced CORS options
 const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -120,47 +153,79 @@ const corsOptions = {
     'Accept',
     'Authorization',
     'Cache-Control',
-    'Pragma'
+    'Pragma',
+    'X-API-Key',
+    'X-Request-ID'
   ],
-  exposedHeaders: ['X-Total-Count', 'X-Page-Count'],
-  maxAge: 86400
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'X-Request-ID'],
+  maxAge: 86400,
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
-// Development: allow any origin (but echo it back) so credentials and headers work
+// Enhanced CORS configuration
 if (process.env.NODE_ENV === 'development') {
+  // Development: More permissive CORS for local development
   app.use(cors({
-    origin: true,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Allow localhost and 127.0.0.1 with any port
+      if (origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
+        return callback(null, true);
+      }
+      
+      // Allow any origin in development for easier testing
+      return callback(null, true);
+    },
     credentials: true,
     methods: corsOptions.methods,
     allowedHeaders: corsOptions.allowedHeaders,
     exposedHeaders: corsOptions.exposedHeaders,
-    maxAge: corsOptions.maxAge
+    maxAge: corsOptions.maxAge,
+    optionsSuccessStatus: corsOptions.optionsSuccessStatus
   }));
+  
   // Ensure preflight (OPTIONS) requests always get a CORS response
-  // Use a RegExp to match any path to avoid path-to-regexp parsing errors for '*' patterns
-  app.options(/.*/, cors({ origin: true, credentials: true }));
+  app.options(/.*/, cors({ 
+    origin: true, 
+    credentials: true,
+    methods: corsOptions.methods,
+    allowedHeaders: corsOptions.allowedHeaders
+  }));
 } else {
-  // Production: only allow whitelisted origins. Do NOT throw an exception from
-  // the origin callback because that bubbles up as a 500 and prevents CORS headers
-  // being sent. Instead, return false so the response will not include CORS headers.
+  // Production: Strict CORS with proper origin validation
   corsOptions.origin = function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
-    // Debug log for rejected origins - include environment and timestamp to aid troubleshooting
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('[CORS] Request with no origin allowed (mobile/curl)');
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`[CORS] Allowed origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Check for subdomain matches (e.g., app.domain.com, api.domain.com)
+    const domain = process.env.DOMAIN_NAME;
+    if (domain && origin.match(new RegExp(`^https?://[a-zA-Z0-9.-]*${domain.replace('.', '\\.')}$`))) {
+      console.log(`[CORS] Allowed subdomain origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Debug log for rejected origins
     const timestamp = new Date().toISOString();
     console.warn(`[CORS] Rejected origin: ${origin} | env: ${process.env.NODE_ENV || 'unknown'} | time: ${timestamp}`);
-    // Optionally include client info when available
-    try {
-      const reqInfo = (this && this.headers && this.headers['user-agent']) ? ` ua=${this.headers['user-agent']}` : '';
-      if (reqInfo) console.debug(`[CORS] Request info:${reqInfo}`);
-    } catch (e) {
-      // ignore
-    }
+    console.warn(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
+    
     return callback(null, false);
   };
 
   app.use(cors(corsOptions));
-  // Use a RegExp to match any path to avoid path-to-regexp parsing errors for '*' patterns
+  
+  // Enhanced OPTIONS handling for production
   app.options(/.*/, cors(corsOptions));
 }
 

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from "axios";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 import {
   SystemSettingsData,
   CompanySettings,
@@ -7,9 +7,8 @@ import {
   InvoiceSettings,
   NotificationSettings,
   SecuritySettings,
- UserPermissionData,
-  EmailTemplateType,
- AvailablePermissions,
+  UserPermissionData,
+  AvailablePermissions,
   RolePermissionSettings,
   RoleStatistics,
   EmailTemplate,
@@ -19,16 +18,38 @@ import {
   // EmailCheckResponse
 } from "../types";
 
-// API Configuration
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+// API Configuration - Enhanced for VPS deployment
+const getApiBaseUrl = () => {
+  // Check for environment variable first
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Check if we're in production
+  if (process.env.NODE_ENV === 'production') {
+    // In production, try to use the same domain with /api
+    const currentOrigin = window.location.origin;
+    return `${currentOrigin}/api`;
+  }
+  
+  // Development fallback
+  return "http://localhost:5000/api";
+};
 
-// Create axios instance
+const API_BASE_URL = getApiBaseUrl();
+
+// Create axios instance with enhanced configuration
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 20000, // 10 seconds timeout
+  timeout: 30000, // 30 seconds timeout for VPS
   headers: {
     "Content-Type": "application/json",
+  },
+  // Enhanced configuration for VPS deployment
+  withCredentials: true, // Important for CORS with credentials
+  validateStatus: (status) => {
+    // Accept status codes 200-299 and 401 for auth redirects
+    return (status >= 200 && status < 300) || status === 401;
   },
 });
 
@@ -62,23 +83,46 @@ api.interceptors.request.use(
 //   }
 // );
 
-// In your api.ts, update the response interceptor:
+// Enhanced response interceptor with CORS error handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Handle CORS errors specifically
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.error('Network/CORS Error:', error);
+      return Promise.reject({
+        ...error,
+        message: 'Unable to connect to server. Please check your internet connection and try again.',
+        isCorsError: true
+      });
+    }
+    
+    // Handle rate limiting
     if (error.response?.status === 429) {
       console.warn('Rate limited - waiting 5 seconds before retry');
-      // Don't automatically retry, just show user-friendly error
       return Promise.reject({
         ...error,
         message: 'Too many requests. Please wait a moment before trying again.'
       });
     }
     
+    // Handle authentication errors
     if (error.response?.status === 401) {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("auth_user");
-      window.location.href = "/login";
+      // Only redirect if not already on login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = "/login";
+      }
+    }
+    
+    // Handle server errors
+    if (error.response?.status >= 500) {
+      console.error('Server Error:', error.response?.data || error.message);
+      return Promise.reject({
+        ...error,
+        message: 'Server error. Please try again later or contact support if the problem persists.'
+      });
     }
     
     return Promise.reject(error);
