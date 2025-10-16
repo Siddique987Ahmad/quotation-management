@@ -32,6 +32,13 @@ const getApiBaseUrl = () => {
     return `${currentOrigin}/api`;
   }
   
+  // Check if we're running on VPS (IP address)
+  const currentHost = window.location.hostname;
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+    // Running on VPS - use the same IP with port 5000
+    return `http://${currentHost}:5000/api`;
+  }
+  
   // Development fallback
   return "http://localhost:5000/api";
 };
@@ -780,7 +787,26 @@ export const getLogoUrl = (
 ): string | null => {
   if (!logoPath) return null;
 
-  const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+  // Use the same logic as getApiBaseUrl but without /api
+  const getBaseUrl = () => {
+    if (process.env.REACT_APP_API_URL) {
+      return process.env.REACT_APP_API_URL.replace('/api', '');
+    }
+    
+    if (process.env.NODE_ENV === 'production') {
+      const currentOrigin = window.location.origin;
+      return currentOrigin;
+    }
+    
+    const currentHost = window.location.hostname;
+    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+      return `http://${currentHost}:5000`;
+    }
+    
+    return "http://localhost:5000";
+  };
+
+  const baseUrl = getBaseUrl();
 
   // If logoPath already includes the base URL, return as is
   if (logoPath.startsWith("http")) {
@@ -1505,15 +1531,11 @@ export const notificationsAPI = {
 export const systemAPI = {
   // Health check
   healthCheck: (): Promise<AxiosResponse<ApiResponse>> =>
-    api.get("/health", {
-      baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000",
-    }),
+    api.get("/health"),
 
   // Test database
   testDatabase: (): Promise<AxiosResponse<ApiResponse>> =>
-    api.get("/test-db", {
-      baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000",
-    }),
+    api.get("/test-db"),
 };
 
 // Error handling utility
