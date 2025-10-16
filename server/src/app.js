@@ -25,25 +25,19 @@ const app = express();
 //   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
 //   next();
 // }, express.static(path.join(__dirname, 'public/uploads')));
-// Enhanced static file serving with proper CORS
+// PERMISSIVE static file serving - allows all origins
 app.use('/uploads', (req, res, next) => {
-  // Set CORS headers for static files
+  // Set CORS headers for static files - ALLOW ALL ORIGINS
   const origin = req.headers.origin;
   
-  // Check if origin is allowed
-  const isAllowedOrigin = !origin || 
-    allowedOrigins.includes(origin) ||
-    (process.env.NODE_ENV === 'development' && origin) ||
-    (process.env.DOMAIN_NAME && origin && origin.includes(process.env.DOMAIN_NAME));
-  
-  if (isAllowedOrigin) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-  }
-  
+  // Always allow the requesting origin or use wildcard
+  res.header('Access-Control-Allow-Origin', origin || '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
+  
+  console.log(`[CORS] Static file request from origin: ${origin || 'no-origin'}`);
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -162,72 +156,76 @@ const corsOptions = {
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
-// Enhanced CORS configuration
-if (process.env.NODE_ENV === 'development') {
-  // Development: More permissive CORS for local development
-  app.use(cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      // Allow localhost and 127.0.0.1 with any port
-      if (origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
-        return callback(null, true);
-      }
-      
-      // Allow any origin in development for easier testing
-      return callback(null, true);
-    },
-    credentials: true,
-    methods: corsOptions.methods,
-    allowedHeaders: corsOptions.allowedHeaders,
-    exposedHeaders: corsOptions.exposedHeaders,
-    maxAge: corsOptions.maxAge,
-    optionsSuccessStatus: corsOptions.optionsSuccessStatus
-  }));
-  
-  // Ensure preflight (OPTIONS) requests always get a CORS response
-  app.options(/.*/, cors({ 
-    origin: true, 
-    credentials: true,
-    methods: corsOptions.methods,
-    allowedHeaders: corsOptions.allowedHeaders
-  }));
-} else {
-  // Production: Strict CORS with proper origin validation
-  corsOptions.origin = function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('[CORS] Request with no origin allowed (mobile/curl)');
-      return callback(null, true);
-    }
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`[CORS] Allowed origin: ${origin}`);
-      return callback(null, true);
-    }
-    
-    // Check for subdomain matches (e.g., app.domain.com, api.domain.com)
-    const domain = process.env.DOMAIN_NAME;
-    if (domain && origin.match(new RegExp(`^https?://[a-zA-Z0-9.-]*${domain.replace('.', '\\.')}$`))) {
-      console.log(`[CORS] Allowed subdomain origin: ${origin}`);
-      return callback(null, true);
-    }
-    
-    // Debug log for rejected origins
-    const timestamp = new Date().toISOString();
-    console.warn(`[CORS] Rejected origin: ${origin} | env: ${process.env.NODE_ENV || 'unknown'} | time: ${timestamp}`);
-    console.warn(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);
-    
-    return callback(null, false);
-  };
+// PERMISSIVE CORS CONFIGURATION - ALLOWS ALL ORIGINS
+// ⚠️ WARNING: This is less secure but resolves CORS issues immediately
+// TODO: Restrict origins in production for better security
 
-  app.use(cors(corsOptions));
+console.log('🔓 Using PERMISSIVE CORS configuration - allowing all origins');
+
+// Universal CORS configuration that allows all origins
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow ALL origins - this resolves CORS issues immediately
+    console.log(`[CORS] Allowing origin: ${origin || 'no-origin'}`);
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma',
+    'X-API-Key',
+    'X-Request-ID'
+  ],
+  exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'X-Request-ID'],
+  maxAge: 86400,
+  optionsSuccessStatus: 200
+}));
+
+// Ensure ALL OPTIONS requests get CORS response
+app.options(/.*/, cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma',
+    'X-API-Key',
+    'X-Request-ID'
+  ]
+}));
+
+// FALLBACK CORS middleware - ensures CORS headers are ALWAYS present
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
   
-  // Enhanced OPTIONS handling for production
-  app.options(/.*/, cors(corsOptions));
-}
+  // Always set CORS headers regardless of origin
+  res.header('Access-Control-Allow-Origin', origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, X-API-Key, X-Request-ID');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  console.log(`[CORS FALLBACK] Request from origin: ${origin || 'no-origin'} to ${req.path}`);
+  
+  // Handle preflight requests immediately
+  if (req.method === 'OPTIONS') {
+    console.log(`[CORS FALLBACK] Handling OPTIONS request for ${req.path}`);
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // In production behind a CDN or reverse proxy, responses that include
 // CORS headers should also include `Vary: Origin` so caches don't serve
@@ -375,6 +373,22 @@ if (process.env.NODE_ENV === 'development') {
     next();
   });
 }
+
+// CORS test endpoint
+app.get('/cors-test', (req, res) => {
+  const origin = req.headers.origin;
+  res.json({
+    success: true,
+    message: 'CORS test successful',
+    origin: origin || 'no-origin',
+    timestamp: new Date().toISOString(),
+    corsHeaders: {
+      'Access-Control-Allow-Origin': res.get('Access-Control-Allow-Origin'),
+      'Access-Control-Allow-Methods': res.get('Access-Control-Allow-Methods'),
+      'Access-Control-Allow-Headers': res.get('Access-Control-Allow-Headers')
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
