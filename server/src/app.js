@@ -348,7 +348,7 @@ app.use(express.urlencoded({
 }));
 
 // Static files
-// app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+// app.use('/uploads', expresasdss.static(path.join(__dirname, '../uploads'), {
 //   maxAge: '1d',
 //   etag: true,
 //   lastModified: true
