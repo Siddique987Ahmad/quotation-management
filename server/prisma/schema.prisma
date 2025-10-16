@@ -1,0 +1,254 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     @default(USER)
+  customPermissions Json?    // Optional: Store custom permissions as array of strings
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  quotations Quotation[]
+  invoices   Invoice[]
+  passwordResets PasswordReset[]
+  createdEmailTemplates EmailTemplate[]    @relation("EmailTemplateCreator")
+  updatedEmailTemplates EmailTemplate[]    @relation("EmailTemplateUpdater")
+
+
+  @@map("users")
+}
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([email])
+  @@map("password_resets")
+}
+
+model Client {
+  id            String   @id @default(uuid())
+  companyName   String
+  contactPerson String
+  email         String   @unique
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  country       String?
+  taxId         String?
+  customFields  Json?    // Store client-specific form configurations
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  quotations Quotation[]
+  invoices   Invoice[]
+
+  @@map("clients")
+}
+
+model Quotation {
+  id              String          @id @default(uuid())
+  quotationNumber String          @unique
+  title           String
+  description     String?
+  clientId        String
+  userId          String
+  status          QuotationStatus @default(DRAFT)
+  formData        Json            // Dynamic form data based on client
+  subtotal        Decimal         @db.Decimal(12, 2)
+  taxPercentage   Decimal         @db.Decimal(5, 2) @default(0)
+  taxAmount       Decimal         @db.Decimal(12, 2)
+  gstPercentage   Decimal         @db.Decimal(5, 2) @default(0)
+  gstAmount       Decimal         @db.Decimal(12, 2) @default(0)
+  pstPercentage   Decimal         @db.Decimal(5, 2) @default(0)
+  pstAmount       Decimal         @db.Decimal(12, 2) @default(0)
+  combinedTaxAmount Decimal       @db.Decimal(12, 2) @default(0)
+  totalAmount     Decimal         @db.Decimal(12, 2)
+  validUntil      DateTime?
+  notes           String?
+  emailSent       Boolean         @default(false)
+  emailSentAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  client   Client    @relation(fields: [clientId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+  invoices Invoice[]
+
+  @@map("quotations")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  quotationId   String
+  clientId      String
+  userId        String
+  type          InvoiceType   @default(TAX_INVOICE_1)
+  subtotal      Decimal       @db.Decimal(12, 2)
+  taxPercentage Decimal       @db.Decimal(5, 2)
+  taxAmount     Decimal       @db.Decimal(12, 2)
+  gstPercentage Decimal       @db.Decimal(5, 2) @default(0)
+  gstAmount     Decimal       @db.Decimal(12, 2) @default(0)
+  pstPercentage Decimal       @db.Decimal(5, 2) @default(0)
+  pstAmount     Decimal       @db.Decimal(12, 2) @default(0)
+  combinedTaxAmount Decimal   @db.Decimal(12, 2) @default(0)
+  totalAmount   Decimal       @db.Decimal(12, 2)
+  status        InvoiceStatus @default(PENDING)
+  dueDate       DateTime?
+  paidDate      DateTime?
+  emailSent     Boolean       @default(false)
+  emailSentAt   DateTime?
+  pdfPath       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  quotation Quotation @relation(fields: [quotationId], references: [id])
+  client    Client    @relation(fields: [clientId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@map("invoices")
+}
+
+model FormTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  clientId    String?  // Optional: client-specific template
+  fields      Json     // Form field definitions
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("form_templates")
+}
+
+model SystemSettings {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json     // Store settings as JSON to handle different data types
+  category    String?   // e.g., 'company', 'email', 'tax', 'invoice', 'notifications', 'security','rolePermissions'
+  description String?  // Optional description for the setting
+  isEncrypted Boolean  @default(false) // Flag for sensitive data like passwords
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([key, category])
+  @@map("system_settings")
+}
+
+model EmailTemplate {
+  id          String              @id @default(uuid())
+  templateKey String              @unique // e.g., 'quotation_approved', 'custom_welcome'
+  name        String              // Human-readable name
+  description String?
+  category    EmailTemplateCategory @default(CUSTOM)
+  type        EmailTemplateType   @default(CUSTOM)
+  enabled     Boolean             @default(true)
+  isSystem    Boolean             @default(false) // System templates cannot be deleted
+  subject     String
+  htmlContent String?             // For custom HTML templates
+  textContent String?             // For custom content
+  sections    Json                // Template sections configuration
+  variables   Json                // Required/optional variables
+  metadata    Json?               // Additional metadata (colors, icons, etc.)
+  version     Int                 @default(1)
+  createdBy   String
+  updatedBy   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  // Relations
+  creator   User  @relation("EmailTemplateCreator", fields: [createdBy], references: [id])
+  updater   User? @relation("EmailTemplateUpdater", fields: [updatedBy], references: [id])
+
+  @@index([category])
+  @@index([type])
+  @@index([templateKey])
+  @@index([enabled])
+  @@map("email_templates")
+}
+
+
+// Enums
+enum Role {
+  SUPER_ADMIN
+  ADMIN  
+  MANAGER
+  USER
+}
+
+enum QuotationStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  PENDING
+  APPROVED
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum InvoiceType {
+  TAX_INVOICE_1
+  TAX_INVOICE_2
+  TAX_INVOICE_3
+}
+
+enum EmailTemplateCategory {
+  QUOTATION
+  INVOICE
+  USER
+  NOTIFICATION
+  MARKETING
+  SYSTEM
+  CUSTOM
+}
+
+enum EmailTemplateType {
+  QUOTATION_SENT
+  QUOTATION_APPROVED
+  QUOTATION_REJECTED
+  INVOICE_APPROVED
+  INVOICE_SENT
+  INVOICE_PAID
+  INVOICE_OVERDUE
+  USER_WELCOME
+  USER_PASSWORD_RESET
+  NOTIFICATION_SYSTEM
+  NOTIFICATION_REMINDER
+  CUSTOM
+}

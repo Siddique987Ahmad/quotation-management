@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "public"."quotations" ADD COLUMN     "combinedTaxAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "gstAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "gstPercentage" DECIMAL(5,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "pstAmount" DECIMAL(12,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "pstPercentage" DECIMAL(5,2) NOT NULL DEFAULT 0;
