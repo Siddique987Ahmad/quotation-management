@@ -45,6 +45,20 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+// Debug logging
+console.log('🔧 API Configuration Debug:');
+console.log('📍 Current hostname:', window.location.hostname);
+console.log('🌐 Current origin:', window.location.origin);
+console.log('🔗 API Base URL:', API_BASE_URL);
+console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔧 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+
+// Test API connectivity
+fetch(API_BASE_URL.replace('/api', '') + '/health')
+  .then(response => response.json())
+  .then(data => console.log('✅ Backend health check:', data))
+  .catch(error => console.error('❌ Backend health check failed:', error));
+
 // Create axios instance with enhanced configuration
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
