@@ -99,32 +99,25 @@ app.use(helmet({
 //   maxAge: 86400 // 24 hours
 // };
 
+// Configure CORS. In development we allow the requesting origin so the
+// browser receives Access-Control-Allow-Origin and related headers. In
+// production we use a stricter allow-list.
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://127.0.0.1:3000',
-      process.env.FRONTEND_URL,
-      process.env.CLIENT_URL
-    ].filter(Boolean);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
-    'Origin', 
-    'X-Requested-With', 
-    'Content-Type', 
-    'Accept', 
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
     'Authorization',
     'Cache-Control',
     'Pragma'
@@ -133,7 +126,62 @@ const corsOptions = {
   maxAge: 86400
 };
 
-app.use(cors(corsOptions));
+// Development: allow any origin (but echo it back) so credentials and headers work
+if (process.env.NODE_ENV === 'development') {
+  app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: corsOptions.methods,
+    allowedHeaders: corsOptions.allowedHeaders,
+    exposedHeaders: corsOptions.exposedHeaders,
+    maxAge: corsOptions.maxAge
+  }));
+  // Ensure preflight (OPTIONS) requests always get a CORS response
+  app.options('*', cors({ origin: true, credentials: true }));
+} else {
+  // Production: only allow whitelisted origins. Do NOT throw an exception from
+  // the origin callback because that bubbles up as a 500 and prevents CORS headers
+  // being sent. Instead, return false so the response will not include CORS headers.
+  corsOptions.origin = function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+    // Debug log for rejected origins - include environment and timestamp to aid troubleshooting
+    const timestamp = new Date().toISOString();
+    console.warn(`[CORS] Rejected origin: ${origin} | env: ${process.env.NODE_ENV || 'unknown'} | time: ${timestamp}`);
+    // Optionally include client info when available
+    try {
+      const reqInfo = (this && this.headers && this.headers['user-agent']) ? ` ua=${this.headers['user-agent']}` : '';
+      if (reqInfo) console.debug(`[CORS] Request info:${reqInfo}`);
+    } catch (e) {
+      // ignore
+    }
+    return callback(null, false);
+  };
+
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
+}
+
+// In production behind a CDN or reverse proxy, responses that include
+// CORS headers should also include `Vary: Origin` so caches don't serve
+// a response for one origin to a different origin. Add middleware to set
+// the Vary header for production environments.
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    try {
+      // Append Vary: Origin without overwriting existing Vary header
+      const existing = res.getHeader('Vary');
+      if (!existing) {
+        res.setHeader('Vary', 'Origin');
+      } else if (!String(existing).includes('Origin')) {
+        res.setHeader('Vary', String(existing) + ', Origin');
+      }
+    } catch (e) {
+      // ignore header errors
+    }
+    next();
+  });
+}
 
 // Rate limiting
 const createRateLimit = (windowMs, max, message, skip = []) => {
