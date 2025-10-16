@@ -137,7 +137,8 @@ if (process.env.NODE_ENV === 'development') {
     maxAge: corsOptions.maxAge
   }));
   // Ensure preflight (OPTIONS) requests always get a CORS response
-  app.options('*', cors({ origin: true, credentials: true }));
+  // Use a RegExp to match any path to avoid path-to-regexp parsing errors for '*' patterns
+  app.options(/.*/, cors({ origin: true, credentials: true }));
 } else {
   // Production: only allow whitelisted origins. Do NOT throw an exception from
   // the origin callback because that bubbles up as a 500 and prevents CORS headers
@@ -159,7 +160,8 @@ if (process.env.NODE_ENV === 'development') {
   };
 
   app.use(cors(corsOptions));
-  app.options('*', cors(corsOptions));
+  // Use a RegExp to match any path to avoid path-to-regexp parsing errors for '*' patterns
+  app.options(/.*/, cors(corsOptions));
 }
 
 // In production behind a CDN or reverse proxy, responses that include
