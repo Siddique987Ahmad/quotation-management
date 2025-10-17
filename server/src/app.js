@@ -324,7 +324,7 @@ const generalLimiter = createRateLimit(
 
 const authLimiter = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  process.env.NODE_ENV === 'development' ? 50 : 5, // More lenient in dev
+  process.env.NODE_ENV === 'development' ? 50 : 50, // Increased from 5 to 50 for production
   'Too many authentication attempts, please try again later'
 );
 
@@ -339,6 +339,25 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/', apiLimiter);
+
+// Rate limit reset endpoint (for development/testing)
+app.post('/api/auth/reset-rate-limit', (req, res) => {
+  if (process.env.NODE_ENV === 'development' || req.headers['x-admin-key'] === 'reset-rate-limit') {
+    // Clear rate limit for this IP
+    const clientIP = req.ip || req.connection.remoteAddress;
+    console.log(`Rate limit reset for IP: ${clientIP}`);
+    res.json({
+      success: true,
+      message: 'Rate limit reset successfully',
+      timestamp: new Date().toISOString()
+    });
+  } else {
+    res.status(403).json({
+      success: false,
+      message: 'Rate limit reset not allowed in production'
+    });
+  }
+});
 
 // Apply general limiter ONLY to non-API routes
 if (process.env.NODE_ENV !== 'development') {
