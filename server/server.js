@@ -18,11 +18,12 @@ const startServer = async () => {
       process.exit(1);
     }
     
-    // Start HTTP server
-    const server = app.listen(PORT, () => {
+    // Start HTTP server - bind to all interfaces (0.0.0.0) for VPS deployment
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('🚀 ================================');
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🚀 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🚀 Binding to: 0.0.0.0:${PORT} (all interfaces)`);
       console.log('🚀 ================================');
       console.log(`📖 API Documentation: http://localhost:${PORT}/api`);
       console.log(`💊 Health check: http://localhost:${PORT}/health`);

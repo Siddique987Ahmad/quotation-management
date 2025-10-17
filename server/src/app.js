@@ -227,6 +227,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Additional CORS middleware for health check endpoint
+app.get('/health', (req, res) => {
+  const origin = req.headers.origin;
+  res.header('Access-Control-Allow-Origin', origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: process.env.APP_VERSION || '1.0.0'
+  });
+});
+
 // In production behind a CDN or reverse proxy, responses that include
 // CORS headers should also include `Vary: Origin` so caches don't serve
 // a response for one origin to a different origin. Add middleware to set
