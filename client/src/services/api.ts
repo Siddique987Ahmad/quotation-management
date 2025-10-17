@@ -34,16 +34,33 @@ const getApiBaseUrl = () => {
   
   // Check if we're running on VPS (IP address)
   const currentHost = window.location.hostname;
+  console.log('🔍 Current hostname:', currentHost);
+  
+  // Force VPS configuration for IP addresses
   if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
     // Running on VPS - use the same IP with port 5000
-    return `http://${currentHost}:5000/api`;
+    const apiUrl = `http://${currentHost}:5000/api`;
+    console.log('🌐 Using VPS API URL:', apiUrl);
+    return apiUrl;
   }
   
   // Development fallback
+  console.log('🏠 Using localhost API URL');
   return "http://localhost:5000/api";
 };
 
-const API_BASE_URL = getApiBaseUrl();
+// Force API URL for VPS deployment
+const API_BASE_URL = (() => {
+  const currentHost = window.location.hostname;
+  
+  // If running on VPS IP, use the same IP for API
+  if (currentHost === '148.230.82.188') {
+    return 'http://148.230.82.188:5000/api';
+  }
+  
+  // Otherwise use the dynamic configuration
+  return getApiBaseUrl();
+})();
 
 // Debug logging
 console.log('🔧 API Configuration Debug:');
