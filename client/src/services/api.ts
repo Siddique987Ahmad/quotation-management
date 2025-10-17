@@ -46,7 +46,7 @@ const getApiBaseUrl = () => {
   
   // Development fallback
   console.log('🏠 Using localhost API URL');
-  return "http://localhost:5000/api";
+  return "http://148.230.82.188:5000/api";
 };
 
 // Force API URL for VPS deployment
@@ -834,7 +834,7 @@ export const getLogoUrl = (
       return `http://${currentHost}:5000`;
     }
     
-    return "http://localhost:5000";
+    return "http://148.230.82.188:5000";
   };
 
   const baseUrl = getBaseUrl();

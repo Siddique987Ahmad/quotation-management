@@ -104,7 +104,7 @@ const CompanySettingsComponent: React.FC<CompanySettingsProps> = ({
   // Clean up the logo URL function
   const getLogoUrl = (logoPath: string) => {
     if (!logoPath) return null;
-    const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const baseUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://148.230.82.188:5000';
     return `${baseUrl}${logoPath}`;
   };
 

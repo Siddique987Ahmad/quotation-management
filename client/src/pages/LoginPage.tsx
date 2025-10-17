@@ -42,7 +42,7 @@ const LoginCompanyLogo: React.FC<{ className?: string }> = ({ className = "w-16 
   }
 
   const logoUrl = companySettings?.logo
-    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000'}${companySettings.logo}?t=${Date.now()}`
+    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://148.230.82.188:5000'}${companySettings.logo}?t=${Date.now()}`
     : null;
 
   const companyName = companySettings?.name || 'QuoteFlow';

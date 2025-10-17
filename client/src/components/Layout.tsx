@@ -206,7 +206,7 @@ const CompanyLogo: React.FC<{ className?: string; showText?: boolean }> = ({
   }
 
   const logoUrl = companySettings?.logo 
-  ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${companySettings.logo}?t=${Date.now()}`
+  ? `${process.env.REACT_APP_API_URL || 'http://148.230.82.188:5000'}${companySettings.logo}?t=${Date.now()}`
   : null;
 
 
