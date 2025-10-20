@@ -829,12 +829,12 @@ export const getLogoUrl = (
       return currentOrigin;
     }
     
-    const currentHost = window.location.hostname;
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return `http://${currentHost}:5000`;
-    }
-    
-    return "http://148.230.82.188:5000";
+  const currentHost = window.location.hostname;
+  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+    return `http://${currentHost}:5000`;
+  }
+  
+  return "http://148.230.82.188:5000";
   };
 
   const baseUrl = getBaseUrl();
