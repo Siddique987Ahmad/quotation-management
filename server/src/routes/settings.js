@@ -1520,7 +1520,7 @@ router.post('/company',
       .withMessage('Country must not exceed 50 characters'),
     body('phone')
       .optional()
-      .trim()
+      // .trim()
       .isMobilePhone('any', { strictMode: false })
       .withMessage('Please provide a valid phone number'),
     body('website')

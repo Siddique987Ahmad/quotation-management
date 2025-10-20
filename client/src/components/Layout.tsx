@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import LoadingSpinner, { PageSpinner } from './LoadingSpinner';
+import { PageSpinner } from './LoadingSpinner';
 import { isAuthenticated, initializeAuth, cleanupAuth } from '../utils/auth';
 import { useCompany } from '../contexts/CompanyContext';
 

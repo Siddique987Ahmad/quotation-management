@@ -8,8 +8,8 @@ import {
   setUserPermissions // ADD THIS
 } from '../utils/auth';
 import { useCompany } from '../contexts/CompanyContext';
-import { LoginCredentials, ApiResponse, AuthResponse } from '../types';
-import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
+import {  AuthResponse } from '../types';
+import { ButtonSpinner } from '../components/LoadingSpinner';
 
 // =============================================================================
 // TYPES
