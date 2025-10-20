@@ -36,7 +36,7 @@ const DepartmentsSettings: React.FC = () => {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this department?')) return;
+    if (!window.confirm('Delete this department?')) return;
     setLoading(true);
     try {
       await departmentsAPI.remove(id);
