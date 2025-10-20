@@ -134,7 +134,7 @@ const connectDatabase = async () => {
     // Note: Prisma connects automatically on first query
     // This is mainly for testing the connection
     await prisma.$connect();
-    console.log('✅ Database connected successfully');
+    console.log('✅ Database connected successfully',process.env.DATABASE_URL);
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error);

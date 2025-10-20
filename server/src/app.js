@@ -493,6 +493,7 @@ app.use('/api/quotations', require('./routes/quotations'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/departments', require('./routes/departments'));
 
 // Webhook endpoints (for future integrations)
 app.use('/webhooks', (req, res, next) => {

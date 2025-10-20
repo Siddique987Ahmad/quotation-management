@@ -830,7 +830,8 @@ const createClient = asyncHandler(async (req, res) => {
     zipCode,
     country,
     taxId,
-    customFields
+    customFields,
+    departmentId
   } = req.body;
 
   // Validate custom fields if provided
@@ -867,6 +868,7 @@ const createClient = asyncHandler(async (req, res) => {
       country,
       taxId,
       customFields,
+      departmentId,
       isActive: true
     },
     select: {
@@ -882,6 +884,7 @@ const createClient = asyncHandler(async (req, res) => {
       country: true,
       taxId: true,
       customFields: true,
+      departmentId: true,
       isActive: true,
       createdAt: true
     }
@@ -909,7 +912,8 @@ const updateClient = asyncHandler(async (req, res) => {
     country,
     taxId,
     customFields,
-    isActive
+    isActive,
+    departmentId
   } = req.body;
 
   // Check if client exists
@@ -955,6 +959,7 @@ const updateClient = asyncHandler(async (req, res) => {
       ...(country !== undefined && { country }),
       ...(taxId !== undefined && { taxId }),
       ...(customFields !== undefined && { customFields }),
+      ...(departmentId !== undefined && { departmentId }),
       ...(typeof isActive === 'boolean' && { isActive }),
       updatedAt: new Date()
     },
@@ -971,6 +976,7 @@ const updateClient = asyncHandler(async (req, res) => {
       country: true,
       taxId: true,
       customFields: true,
+      departmentId: true,
       isActive: true,
       createdAt: true,
       updatedAt: true
