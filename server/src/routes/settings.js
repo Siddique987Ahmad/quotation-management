@@ -1520,9 +1520,31 @@ router.post('/company',
       .withMessage('Country must not exceed 50 characters'),
     body('phone')
       .optional()
-      // .trim()
-      .isMobilePhone('any', { strictMode: false })
-      .withMessage('Please provide a valid phone number'),
+      .trim()
+      .custom((value) => {
+        if (!value) return true; // Allow empty values since it's optional
+        
+        // Remove all spaces and dashes for validation
+        const cleanPhone = value.replace(/[\s\-]/g, '');
+        
+        // Check for Pakistani phone number patterns
+        const pakistaniPatterns = [
+          /^\+92[0-9]{10}$/,           // +92 followed by 10 digits
+          /^92[0-9]{10}$/,             // 92 followed by 10 digits (without +)
+          /^0[0-9]{10}$/,              // 0 followed by 10 digits (local format)
+          /^[0-9]{11}$/                // 11 digits total
+        ];
+        
+        // Check if it matches any Pakistani pattern
+        const isValidPakistani = pakistaniPatterns.some(pattern => pattern.test(cleanPhone));
+        
+        if (!isValidPakistani) {
+          throw new Error('Please provide a valid Pakistani phone number (e.g., +92 300 1234567, 0300 1234567, or 3001234567)');
+        }
+        
+        return true;
+      })
+      .withMessage('Please provide a valid Pakistani phone number'),
     body('website')
       .optional()
       .trim()
