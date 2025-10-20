@@ -1,5 +1,5 @@
 // System Settings Types
-export type SettingsSectionId = 'company' | 'email' | 'tax' | 'invoice' | 'notifications' | 'security'| 'rolePermissions';
+export type SettingsSectionId = 'company' | 'email' | 'tax' | 'invoice' | 'notifications' | 'security'| 'rolePermissions' | 'departments';
 
 export interface CompanySettings {
   name: string;

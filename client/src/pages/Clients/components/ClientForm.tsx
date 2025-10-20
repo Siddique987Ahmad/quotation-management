@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { departmentsAPI } from '../../../services/api';
 import { Client } from '../../../types';
 import { ButtonSpinner } from '../../../components/LoadingSpinner';
 import { Icons } from '../../../components/Icons/Icons';
@@ -26,6 +27,7 @@ interface ClientFormData {
   zipCode: string;
   country: string;
   taxId: string;
+  departmentId: string;
   dynamicFields: DynamicField[];
 }
 
@@ -75,6 +77,7 @@ interface FieldErrors {
   zipCode: string;
   country: string;
   taxId: string;
+  departmentId?: string;
   dynamicFields: Record<string, string>;
 }
 
@@ -208,6 +211,35 @@ const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
 }) => {
   const renderFieldContent = () => {
     switch (field.type) {
+      case 'select':
+        if (field.id === 'departmentId') {
+          return (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Department {field.required && <span className="text-red-500">*</span>}
+              </label>
+              <select
+                value={formData.departmentId}
+                onChange={(e) => onChange({ departmentId: e.target.value })}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-blue-500 ${
+                  errors.departmentId ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              >
+                <option value="">Select department</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              {errors.departmentId && (
+                <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                  <Icons.AlertCircle />
+                  {errors.departmentId}
+                </p>
+              )}
+            </div>
+          );
+        }
+        break;
       case 'companyName':
         return (
           <div>
@@ -937,6 +969,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
     zipCode: client?.zipCode || '',
     country: client?.country || '',
     taxId: client?.taxId || '',
+    departmentId: (client as any)?.departmentId || '',
     dynamicFields: client?.customFields ? Object.entries(client.customFields).map(([key, value]) => ({
       id: key,
       type: 'text',
@@ -960,6 +993,19 @@ const ClientForm: React.FC<ClientFormProps> = ({
     taxId: '',
     dynamicFields: {}
   });
+
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await departmentsAPI.list();
+        const list = res.data?.data || res.data || [];
+        setDepartments(Array.isArray(list) ? list : []);
+      } catch (e) {
+        setDepartments([]);
+      }
+    })();
+  }, []);
 
   // SIMPLIFIED: Basic validation function - just like your example
   const validateField = (field: keyof FieldErrors | string, value: any) => {
@@ -1014,6 +1060,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
       { id: 'companyName', type: 'companyName', label: 'Company Name', required: true },
       { id: 'contactPerson', type: 'contactPerson', label: 'Contact Person', required: true },
       { id: 'email', type: 'email', label: 'Email Address', required: true },
+      { id: 'departmentId', type: 'select', label: 'Department', required: true },
       { id: 'phone', type: 'phone', label: 'Phone Number' },
       { id: 'address', type: 'address', label: 'Street Address' },
       { id: 'city', type: 'city', label: 'City' },
@@ -1245,6 +1292,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     hasErrors = true;
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
     newErrors.email = 'Invalid email format';
+    hasErrors = true;
+  }
+  if (!formData.departmentId) {
+    newErrors.departmentId = 'Department is required';
     hasErrors = true;
   }
 

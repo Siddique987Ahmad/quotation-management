@@ -9,6 +9,7 @@ import CompanySettingsComponent from './components/CompanySettings';
 import EmailSettingsComponent from './components/EmailSettings';
 import TaxSettingsComponent from './components/TaxSettings';
 import InvoiceSettingsComponent from './components/InvoiceSettings';
+import DepartmentsSettings from './components/DepartmentsSettings';
 import SecuritySettingsComponent from './components/SecuritySettings';
 import { LoadingSkeleton, ErrorComponent, Toast, SettingsFooter } from './components/CommonComponents';
 
@@ -425,13 +426,18 @@ const SystemSettingsPage: React.FC = () => {
     //   description: 'Manage security policies and requirements'
     // },
     // NEW: Role and Permission Settings
+    // {
+    //   id: 'rolePermissions',
+    //   icon: <Icons.Users />,
+    //   title: 'Roles & Permissions',
+    //   description: 'Configure user roles, permissions, and access control'
+    // },
     {
-      id: 'rolePermissions',
-      icon: <Icons.Users />,
-      title: 'Roles & Permissions',
-      description: 'Configure user roles, permissions, and access control'
+      id: 'departments',
+      icon: <Icons.Folder />,
+      title: 'Departments',
+      description: 'Manage departments for clients'
     },
-   
   ];
 
   return (
@@ -499,6 +505,11 @@ const SystemSettingsPage: React.FC = () => {
                 settings={state.settings.invoice}
                 onUpdate={(field, value) => updateSettings('invoice', field, value)}
               />
+            )}
+
+            {/* Departments Management */}
+            {section.id === 'departments' && (
+              <DepartmentsSettings />
             )}
 
             {/* Security Settings */}

@@ -923,6 +923,7 @@ export const clientsAPI = {
     country?: string;
     taxId?: string;
     customFields?: any;
+    departmentId: string;
   }): Promise<AxiosResponse<ApiResponse>> => api.post("/clients", data),
 
   // Update client
@@ -941,6 +942,7 @@ export const clientsAPI = {
       taxId?: string;
       customFields?: any;
       isActive?: boolean;
+      departmentId?: string;
     }
   ): Promise<AxiosResponse<ApiResponse>> => api.put(`/clients/${id}`, data),
 
@@ -984,6 +986,13 @@ export const clientsAPI = {
   checkEmail: (email: string): Promise<AxiosResponse<ApiResponse>> =>
     api.get(`/clients/check-email`, { params: { email } }),
 
+};
+
+// Departments API
+export const departmentsAPI = {
+  list: (): Promise<AxiosResponse<ApiResponse>> => api.get('/departments'),
+  create: (name: string): Promise<AxiosResponse<ApiResponse>> => api.post('/departments', { name }),
+  remove: (id: string): Promise<AxiosResponse<ApiResponse>> => api.delete(`/departments/${id}`)
 };
 
 // Quotations API
