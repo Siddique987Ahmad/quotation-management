@@ -54,6 +54,7 @@ type FormFieldType =
   | 'zipCode'
   | 'country'
   | 'taxId'
+  | 'select'
   | 'dynamic';
 
 interface FormField {
@@ -186,6 +187,7 @@ interface DraggableFieldComponentProps {
   onDeleteDynamic: (id: string) => void;
   isDragged?: boolean;
   isDraggedOver?: boolean;
+  departments: Array<{ id: string; name: string }>;
   dragHandlers: {
     onDragStart: (e: React.DragEvent) => void;
     onDragEnd: (e: React.DragEvent) => void;
@@ -205,6 +207,7 @@ const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
   onDeleteDynamic,
   isDragged = false,
   isDraggedOver = false,
+  departments,
   errors,
   onValidate,
   dragHandlers,
@@ -226,7 +229,7 @@ const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
                 }`}
               >
                 <option value="">Select department</option>
-                {departments.map((d) => (
+                {departments.map((d: { id: string; name: string }) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
@@ -1122,6 +1125,7 @@ const ClientForm: React.FC<ClientFormProps> = ({
         zipCode: client.zipCode || '',
         country: client.country || '',
         taxId: client.taxId || '',
+        departmentId: (client as any)?.departmentId || '',
         dynamicFields: client.customFields ? Object.entries(client.customFields).map(([key, value]) => ({
           id: key,
           type: 'text',
@@ -1379,6 +1383,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               onDeleteDynamic={deleteDynamicField}
               isDragged={dragAndDropHandlers.draggedItem?.id === field.id}
               isDraggedOver={dragAndDropHandlers.draggedOver === field.id}
+              departments={departments}
               errors={errors}
               onValidate={validateField}
               dragHandlers={{

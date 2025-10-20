@@ -13,6 +13,7 @@ export interface ClientFormData {
   zipCode: string;
   country: string;
   taxId: string;
+  departmentId: string;
 }
 
 export interface ClientFilters {
