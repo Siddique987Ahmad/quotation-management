@@ -26,6 +26,7 @@ const ClientPageHeader: React.FC<ClientPageHeaderProps> = ({
       case 'create': return 'Add New Client';
       case 'edit': return 'Edit Client';
       case 'view': return 'Client Details';
+      case 'departments': return 'Department Management';
       default: return 'Client Management';
     }
   };
@@ -34,6 +35,7 @@ const ClientPageHeader: React.FC<ClientPageHeaderProps> = ({
     switch (mode) {
       case 'list': return 'Manage your business clients and customer relationships';
       case 'create': return 'Add a new client to create quotations and manage business relationships';
+      case 'departments': return 'Manage departments and assign clients to them';
       default: return 'View and manage client information and business history';
     }
   };

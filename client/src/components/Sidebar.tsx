@@ -45,7 +45,7 @@ const SidebarCompanyLogo: React.FC<{ className?: string }> = ({ className = "w-8
   }
 
   const logoUrl = companySettings?.logo
-    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://148.230.82.188:5000'}${companySettings.logo}?t=${Date.now()}`
+    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'http://148.230.82.188:5000')}${companySettings.logo}?t=${Date.now()}`
     : null;
 
   const companyName = companySettings?.name || 'QuoteFlow';
@@ -163,6 +163,13 @@ const menuItems: MenuItem[] = [
         path: '/clients/create',
         icon: <Icons.Clients />,
         requiredPermissions: [{ resource: 'clients', action: 'create' }]
+      },
+      {
+        id: 'clients-departments',
+        label: 'Add Department',
+        path: '/clients/departments',
+        icon: <Icons.Settings />,
+        requiredPermissions: [{ resource: 'clients', action: 'read' }]
       }
     ]
   },

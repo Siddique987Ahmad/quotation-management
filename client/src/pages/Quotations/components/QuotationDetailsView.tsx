@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Quotation, QuotationStatus } from '../../../types';
 import { hasPermission, getUserDisplayName } from '../../../utils/auth';
 import { CardSpinner, ButtonSpinner } from '../../../components/LoadingSpinner';
 import { Icons } from '../../../components/Icons/Icons';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { departmentsAPI } from '../../../services/api';
 
 interface QuotationDetailsViewProps {
   quotation: Quotation | null;
@@ -15,7 +16,7 @@ interface QuotationDetailsViewProps {
   onStatusUpdate: (status: QuotationStatus) => void;
   onDownloadPDF: (includeTax?: boolean) => void;
   onDownloadBothPDFs: () => void;
-  onSendEmail: () => void;
+  onSendEmail: (departmentId?: string) => void;
   actionLoading?: boolean;
 }
 
@@ -155,6 +156,101 @@ const PDFDownloadDropdown: React.FC<PDFDownloadDropdownProps> = ({
             </div>
           </div>
         </>
+      )}
+    </div>
+  );
+};
+
+// Department Email Dropdown Component
+interface DepartmentEmailDropdownProps {
+  quotation: Quotation;
+  onSendEmail: (departmentId?: string) => void;
+  loading: boolean;
+}
+
+const DepartmentEmailDropdown: React.FC<DepartmentEmailDropdownProps> = ({
+  quotation,
+  onSendEmail,
+  loading
+}) => {
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  const loadDepartments = async () => {
+    try {
+      setDepartmentsLoading(true);
+      const response = await departmentsAPI.list();
+      setDepartments(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  const handleSendToDepartment = (departmentId?: string) => {
+    setIsOpen(false);
+    onSendEmail(departmentId);
+  };
+
+  if (!quotation.client?.email) {
+    return null;
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={loading || departmentsLoading}
+        className="inline-flex items-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+      >
+        <Icons.Mail />
+        <span className="ml-2">Send Email</span>
+        <Icons.ChevronDown />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+          <div className="py-1">
+            <div className="px-4 py-2 text-sm text-gray-500 border-b border-gray-100">
+              Send to Department
+            </div>
+            
+            {departmentsLoading ? (
+              <div className="px-4 py-2 text-sm text-gray-500">
+                Loading departments...
+              </div>
+            ) : (
+              <>
+                {departments.map((department) => (
+                  <button
+                    key={department.id}
+                    onClick={() => handleSendToDepartment(department.id)}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
+                    <Icons.Settings />
+                    {department.name}
+                  </button>
+                ))}
+                
+                <div className="border-t border-gray-100">
+                  <button
+                    onClick={() => handleSendToDepartment()}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center font-medium"
+                  >
+                    <Icons.Mail />
+                    Send All
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -356,13 +452,11 @@ const QuotationDetailsView: React.FC<QuotationDetailsViewProps> = ({
             </button>
 
             {quotation.client?.email && (
-              <button
-                onClick={() => onSendEmail()}
-                className="inline-flex items-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <Icons.Mail />
-                <span className="ml-2">Send Email</span>
-              </button>
+              <DepartmentEmailDropdown
+                quotation={quotation}
+                onSendEmail={onSendEmail}
+                loading={actionLoading}
+              />
             )}
             
             {canDelete && quotation.status !== QuotationStatus.APPROVED && (

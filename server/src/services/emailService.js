@@ -2765,6 +2765,45 @@ const sendQuotationEmail = async (quotationData, clientData, pdfBuffer) => {
   return await sendEmail(clientData.email, 'quotation_sent', templateData, emailOptions);
 };
 
+// Send quotation email to multiple clients (department-based)
+const sendQuotationEmailToDepartment = async (quotationData, targetClients, pdfBuffer) => {
+  const results = [];
+  const failedEmails = [];
+  
+  for (const client of targetClients) {
+    try {
+      console.log(`📧 Sending quotation email to: ${client.email}`);
+      
+      // Use existing sendQuotationEmail function for each client
+      const emailResult = await sendQuotationEmail(quotationData, client, pdfBuffer);
+      
+      results.push({
+        clientId: client.id,
+        email: client.email,
+        success: true,
+        messageId: emailResult.messageId
+      });
+      
+      console.log(`✅ Email sent successfully to ${client.email}`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to send email to ${client.email}:`, error.message);
+      failedEmails.push({
+        clientId: client.id,
+        email: client.email,
+        error: error.message
+      });
+    }
+  }
+  
+  return {
+    successfulEmails: results,
+    failedEmails: failedEmails,
+    totalSent: results.length,
+    totalFailed: failedEmails.length
+  };
+};
+
 // Send invoice email with PDF
 const sendInvoiceEmail = async (invoiceData, clientData, quotationData, pdfBuffer, taxType = 'GST_AND_PST') => {
   const toNumber = (value, defaultValue = 0) => {
@@ -3103,6 +3142,7 @@ module.exports = {
   // Business functions
   sendQuotationApprovedEmail,
   sendQuotationEmail,
+  sendQuotationEmailToDepartment,
   sendInvoiceEmail,
   sendUserWelcomeEmail,
   sendPasswordResetEmail,

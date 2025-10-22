@@ -444,9 +444,6 @@ router.get('/:id/form-template', [
  */
 router.post('/', [
   requirePermission(PERMISSIONS.CLIENTS.CREATE),
-  body('departmentId')
-    .isUUID()
-    .withMessage('departmentId is required'),
   body('companyName')
     .trim()
     .isLength({ min: 1, max: 255 })
@@ -509,10 +506,6 @@ router.post('/', [
 router.put('/:id', [
   validateUUIDParam('id'),
   requirePermission(PERMISSIONS.CLIENTS.UPDATE),
-  body('departmentId')
-    .optional()
-    .isUUID()
-    .withMessage('departmentId must be a valid UUID'),
   body('companyName')
     .optional()
     .trim()

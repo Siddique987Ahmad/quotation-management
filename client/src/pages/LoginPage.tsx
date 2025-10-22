@@ -42,7 +42,7 @@ const LoginCompanyLogo: React.FC<{ className?: string }> = ({ className = "w-16 
   }
 
   const logoUrl = companySettings?.logo
-    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://148.230.82.188:5000'}${companySettings.logo}?t=${Date.now()}`
+    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'http://148.230.82.188:5000')}${companySettings.logo}?t=${Date.now()}`
     : null;
 
   const companyName = companySettings?.name || 'QuoteFlow';
@@ -229,7 +229,7 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <LoginCompanyLogo className="w-16 h-16" />
+          <LoginCompanyLogo className="w-28 h-28" />
         </div>
         <h1 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Welcome to {companyName}
@@ -367,7 +367,7 @@ const LoginPage: React.FC = () => {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              {companyName} v1.0.0 - Quotation Management System
+              {companyName} - Quotation Management System
             </p>
           </div>
         </div>

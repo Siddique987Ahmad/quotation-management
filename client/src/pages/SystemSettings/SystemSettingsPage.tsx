@@ -9,8 +9,8 @@ import CompanySettingsComponent from './components/CompanySettings';
 import EmailSettingsComponent from './components/EmailSettings';
 import TaxSettingsComponent from './components/TaxSettings';
 import InvoiceSettingsComponent from './components/InvoiceSettings';
-import DepartmentsSettings from './components/DepartmentsSettings';
-import SecuritySettingsComponent from './components/SecuritySettings';
+// import SecuritySettingsComponent from './components/SecuritySettings';
+import TermsConditions from './components/TermsConditions';
 import { LoadingSkeleton, ErrorComponent, Toast, SettingsFooter } from './components/CommonComponents';
 
 // Import types
@@ -18,13 +18,13 @@ import {
   SystemSettings,
   SystemSettingsPageState,
   SettingsSectionId,
-  SettingsSectionConfig,
-  CompanySettings,
-  EmailSettings,
-  TaxSettings,
-  InvoiceSettings,
-  NotificationSettings,
-  SecuritySettings,
+  // SettingsSectionConfig,
+  // CompanySettings,
+  // EmailSettings,
+  // TaxSettings,
+  // InvoiceSettings,
+  // NotificationSettings,
+  // SecuritySettings,
   RolePermissionSettings // NEW
 } from './types';
 
@@ -34,13 +34,14 @@ interface EnhancedSystemSettings extends SystemSettings {
 }
 
 // Enhanced page state
-interface EnhancedSystemSettingsPageState extends Omit<SystemSettingsPageState, 'settings' | 'initialSettings'> {
+interface EnhancedSystemSettingsPageState extends Omit<SystemSettingsPageState, 'settings' | 'initialSettings' | 'activeSection'> {
   settings: EnhancedSystemSettings;
   initialSettings: EnhancedSystemSettings | null;
+  activeSection: '' | EnhancedSettingsSectionId;
 }
 
 // Enhanced section ID type
-type EnhancedSettingsSectionId = SettingsSectionId | 'rolePermissions';
+type EnhancedSettingsSectionId = SettingsSectionId | 'rolePermissions' | 'terms';
 
 const SystemSettingsPage: React.FC = () => {
   const [state, setState] = useState<EnhancedSystemSettingsPageState>({
@@ -394,7 +395,7 @@ const SystemSettingsPage: React.FC = () => {
     return <ErrorComponent error={state.error} onRetry={loadSettings} />;
   }
 
-  const sections: Array<SettingsSectionConfig & { id: EnhancedSettingsSectionId }> = [
+  const sections = [
     {
       id: 'company',
       icon: <Icons.Building />,
@@ -419,6 +420,12 @@ const SystemSettingsPage: React.FC = () => {
       title: 'Invoice Settings',
       description: 'Customize invoice generation and formatting'
     },
+    {
+      id: 'terms',
+      icon: <Icons.Document />,
+      title: 'Terms & Conditions',
+      description: 'Manage quotation terms, highlight and ordering'
+    },
     // {
     //   id: 'security',
     //   icon: <Icons.Shield />,
@@ -432,12 +439,7 @@ const SystemSettingsPage: React.FC = () => {
     //   title: 'Roles & Permissions',
     //   description: 'Configure user roles, permissions, and access control'
     // },
-    {
-      id: 'departments',
-      icon: <Icons.Folder />,
-      title: 'Departments',
-      description: 'Manage departments for clients'
-    },
+    // {
   ];
 
   return (
@@ -468,8 +470,8 @@ const SystemSettingsPage: React.FC = () => {
             icon={section.icon}
             title={section.title}
             description={section.description}
-            isActive={state.activeSection === section.id}
-            onClick={() => handleSectionToggle(section.id)}
+            isActive={state.activeSection === section.id as any}
+            onClick={() => handleSectionToggle(section.id as any)}
           >
             {/* Company Settings */}
             {section.id === 'company' && (
@@ -507,9 +509,8 @@ const SystemSettingsPage: React.FC = () => {
               />
             )}
 
-            {/* Departments Management */}
-            {section.id === 'departments' && (
-              <DepartmentsSettings />
+            {section.id === 'terms' && (
+              <TermsConditions />
             )}
 
             {/* Security Settings */}

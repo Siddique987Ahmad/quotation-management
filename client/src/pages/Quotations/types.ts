@@ -39,7 +39,7 @@ export interface QuotationsPageState {
 // Dynamic form field types
 export interface DynamicField {
   id: string;
-  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date' | 'email' | 'phone';
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date' | 'email' | 'phone' | 'scope-of-work';
   label: string;
   value: any;
   placeholder?: string;

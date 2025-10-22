@@ -737,6 +737,17 @@ const getClientById = asyncHandler(async (req, res) => {
   const client = await prisma.client.findUnique({
     where: { id },
     include: {
+      department: {
+        select: {
+          id: true,
+          name: true,
+          contactPerson: true,
+          email: true,
+          phone: true,
+          address: true,
+          city: true
+        }
+      },
       quotations: {
         select: {
           id: true,
@@ -830,8 +841,7 @@ const createClient = asyncHandler(async (req, res) => {
     zipCode,
     country,
     taxId,
-    customFields,
-    departmentId
+    customFields
   } = req.body;
 
   // Validate custom fields if provided
@@ -868,7 +878,6 @@ const createClient = asyncHandler(async (req, res) => {
       country,
       taxId,
       customFields,
-      departmentId,
       isActive: true
     },
     select: {
@@ -884,7 +893,6 @@ const createClient = asyncHandler(async (req, res) => {
       country: true,
       taxId: true,
       customFields: true,
-      departmentId: true,
       isActive: true,
       createdAt: true
     }
@@ -913,7 +921,6 @@ const updateClient = asyncHandler(async (req, res) => {
     taxId,
     customFields,
     isActive,
-    departmentId
   } = req.body;
 
   // Check if client exists
@@ -959,7 +966,6 @@ const updateClient = asyncHandler(async (req, res) => {
       ...(country !== undefined && { country }),
       ...(taxId !== undefined && { taxId }),
       ...(customFields !== undefined && { customFields }),
-      ...(departmentId !== undefined && { departmentId }),
       ...(typeof isActive === 'boolean' && { isActive }),
       updatedAt: new Date()
     },
@@ -976,7 +982,6 @@ const updateClient = asyncHandler(async (req, res) => {
       country: true,
       taxId: true,
       customFields: true,
-      departmentId: true,
       isActive: true,
       createdAt: true,
       updatedAt: true

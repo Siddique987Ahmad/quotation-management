@@ -44,14 +44,19 @@ const getApiBaseUrl = () => {
     return apiUrl;
   }
   
-  // Development fallback
+  // Development fallback - use localhost when running locally
   console.log('🏠 Using localhost API URL');
-  return "http://148.230.82.188:5000/api";
+  return "http://localhost:5000/api";
 };
 
 // Force API URL for VPS deployment
 const API_BASE_URL = (() => {
   const currentHost = window.location.hostname;
+  
+  // If running on localhost, use localhost for API
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
   
   // If running on VPS IP, use the same IP for API
   if (currentHost === '148.230.82.188') {
@@ -62,24 +67,24 @@ const API_BASE_URL = (() => {
   return getApiBaseUrl();
 })();
 
-// Debug logging
-console.log('🔧 API Configuration Debug:');
-console.log('📍 Current hostname:', window.location.hostname);
-console.log('🌐 Current origin:', window.location.origin);
-console.log('🔗 API Base URL:', API_BASE_URL);
-console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
-console.log('🔧 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+// Debug logging - DISABLED for performance
+// console.log('🔧 API Configuration Debug:');
+// console.log('📍 Current hostname:', window.location.hostname);
+// console.log('🌐 Current origin:', window.location.origin);
+// console.log('🔗 API Base URL:', API_BASE_URL);
+// console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+// console.log('🔧 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
 
-// Test API connectivity
-fetch(API_BASE_URL.replace('/api', '') + '/health')
-  .then(response => response.json())
-  .then(data => console.log('✅ Backend health check:', data))
-  .catch(error => console.error('❌ Backend health check failed:', error));
+// Test API connectivity - DISABLED for performance
+// fetch(API_BASE_URL.replace('/api', '') + '/health')
+//   .then(response => response.json())
+//   .then(data => console.log('✅ Backend health check:', data))
+//   .catch(error => console.error('❌ Backend health check failed:', error));
 
 // Create axios instance with enhanced configuration
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds timeout for VPS
+  timeout: 70000, // 10 seconds timeout - reduced from 60s after performance fixes
   headers: {
     "Content-Type": "application/json",
   },
@@ -834,7 +839,7 @@ export const getLogoUrl = (
     return `http://${currentHost}:5000`;
   }
   
-  return "http://148.230.82.188:5000";
+  return "http://localhost:5000";
   };
 
   const baseUrl = getBaseUrl();
@@ -923,7 +928,6 @@ export const clientsAPI = {
     country?: string;
     taxId?: string;
     customFields?: any;
-    departmentId: string;
   }): Promise<AxiosResponse<ApiResponse>> => api.post("/clients", data),
 
   // Update client
@@ -942,7 +946,6 @@ export const clientsAPI = {
       taxId?: string;
       customFields?: any;
       isActive?: boolean;
-      departmentId?: string;
     }
   ): Promise<AxiosResponse<ApiResponse>> => api.put(`/clients/${id}`, data),
 
@@ -991,8 +994,12 @@ export const clientsAPI = {
 // Departments API
 export const departmentsAPI = {
   list: (): Promise<AxiosResponse<ApiResponse>> => api.get('/departments'),
-  create: (name: string): Promise<AxiosResponse<ApiResponse>> => api.post('/departments', { name }),
-  remove: (id: string): Promise<AxiosResponse<ApiResponse>> => api.delete(`/departments/${id}`)
+  create: (data: { name: string; contactPerson?: string; email?: string; phone?: string; address?: string; city?: string; clientId?: string }): Promise<AxiosResponse<ApiResponse>> => 
+    api.post('/departments', data),
+  update: (id: string, data: { name?: string; contactPerson?: string; email?: string; phone?: string; address?: string; city?: string; clientId?: string }): Promise<AxiosResponse<ApiResponse>> => 
+    api.put(`/departments/${id}`, data),
+  delete: (id: string): Promise<AxiosResponse<ApiResponse>> => api.delete(`/departments/${id}`),
+  getClients: (): Promise<AxiosResponse<ApiResponse>> => api.get('/departments/clients')
 };
 
 // Quotations API
@@ -1120,8 +1127,8 @@ export const quotationsAPI = {
   },
 
   // Send email
-  sendEmail: (id: string): Promise<AxiosResponse<ApiResponse>> =>
-    api.post(`/quotations/${id}/send-email`),
+  sendEmail: (id: string, departmentId?: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.post(`/quotations/${id}/send-email`, departmentId ? { departmentId } : {}),
 
   // Get with invoices
   getWithInvoices: (
@@ -1605,3 +1612,15 @@ export const downloadFile = (blob: Blob, filename: string) => {
 };
 
 export default api;
+
+export const termsAPI = {
+  listActive: () => api.get('/terms/quotation/active'),
+  list: () => api.get('/terms/quotation'),
+  create: (data: { label: string; value: string; highlight?: boolean; active?: boolean; sortOrder?: number }) =>
+    api.post('/terms/quotation', data),
+  update: (id: string, data: Partial<{ label: string; value: string; highlight: boolean; active: boolean; sortOrder: number }>) =>
+    api.put(`/terms/quotation/${id}`, data),
+  delete: (id: string) => api.delete(`/terms/quotation/${id}`),
+  reorder: (order: Array<{ id: string; sortOrder: number }>) =>
+    api.put('/terms/quotation/reorder', { order })
+};

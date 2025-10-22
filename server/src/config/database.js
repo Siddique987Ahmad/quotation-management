@@ -107,9 +107,7 @@ const globalForPrisma = global;
 
 // Create or reuse existing Prisma instance
 const prisma = globalForPrisma.prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'development' 
-    ? ['query', 'info', 'warn', 'error'] 
-    : ['error'],
+  log: ['error'], // Only log errors for better performance
   errorFormat: 'pretty',
   // Optional: Add connection pool configuration
   datasources: {

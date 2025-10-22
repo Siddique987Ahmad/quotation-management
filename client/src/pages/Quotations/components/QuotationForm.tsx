@@ -5,6 +5,179 @@ import { Icons } from '../../../components/Icons/Icons';
 import { DynamicField } from '../types';
 import { useCurrency } from '../../../contexts/CurrencyContext';
 
+// Scope of Work Item interface
+interface ScopeOfWorkItem {
+  srNo: number;
+  description: string;
+  qty: number;
+  unit: string;
+  price: number;
+  total: number;
+}
+
+// Scope of Work Field Component
+const ScopeOfWorkField: React.FC<{
+  field: DynamicField;
+  onChange: (value: any) => void;
+}> = ({ field, onChange }) => {
+  const { format } = useCurrency();
+  const items = field.value?.items || [];
+
+  const addItem = () => {
+    const newItems = [...items, {
+      srNo: items.length + 1,
+      description: '',
+      qty: 1,
+      unit: '',
+      price: 0,
+      total: 0
+    }];
+    onChange({ items: newItems });
+  };
+
+  const updateItem = (index: number, field: keyof ScopeOfWorkItem, value: any) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    
+    // Recalculate total
+    if (field === 'qty' || field === 'price') {
+      newItems[index].total = newItems[index].qty * newItems[index].price;
+    }
+    
+    // Update serial numbers
+    if (field === 'srNo') {
+      newItems.forEach((item, idx) => {
+        if (idx !== index) {
+          item.srNo = idx + 1;
+        }
+      });
+    }
+    
+    onChange({ items: newItems });
+  };
+
+  const removeItem = (index: number) => {
+    const newItems = items.filter((_: any, idx: number) => idx !== index);
+    // Update serial numbers
+    newItems.forEach((item: any, idx: number) => {
+      item.srNo = idx + 1;
+    });
+    onChange({ items: newItems });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h4 className="text-lg font-medium text-gray-900">Scope of Work</h4>
+        <button
+          type="button"
+          onClick={addItem}
+          className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+        >
+          Add Item
+        </button>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-300">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                Sr. No.
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                Description
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                QTY
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                Unit
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                Price (PKR)
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                Total Price (PKR)
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {items.map((item: any, index: number) => (
+              <tr key={index}>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <input
+                    type="number"
+                    value={item.srNo}
+                    onChange={(e) => updateItem(index, 'srNo', parseInt(e.target.value) || 1)}
+                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                    min="1"
+                  />
+                </td>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <input
+                    type="text"
+                    value={item.description}
+                    onChange={(e) => updateItem(index, 'description', e.target.value)}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    placeholder="Enter description"
+                  />
+                </td>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <input
+                    type="number"
+                    value={item.qty}
+                    onChange={(e) => updateItem(index, 'qty', parseFloat(e.target.value) || 0)}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                    min="0"
+                    step="0.01"
+                  />
+                </td>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <input
+                    type="text"
+                    value={item.unit}
+                    onChange={(e) => updateItem(index, 'unit', e.target.value)}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                    placeholder="Unit"
+                  />
+                </td>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <input
+                    type="number"
+                    value={item.price}
+                    onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
+                    min="0"
+                    step="0.01"
+                  />
+                </td>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <span className="text-sm font-medium">
+                    {format(item.total)}
+                  </span>
+                </td>
+                <td className="px-3 py-2 border-b border-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => removeItem(index)}
+                    className="text-red-600 hover:text-red-800 text-sm"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 // Updated form data interface to include taxation options
 export interface QuotationFormData {
   title: string;
@@ -63,13 +236,6 @@ interface FieldErrors {
   dynamicFields: Record<string, string>;
 }
 
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
 
 // Calculate tax amounts based on taxation type
 const calculateTaxAmounts = (subtotal: number, taxationType: string, gstPercentage: number, pstPercentage: number) => {
@@ -104,7 +270,6 @@ const DragHandle: React.FC = () => (
 const useDragAndDrop = (items: FormField[], onReorder: (newItems: FormField[]) => void) => {
   const [draggedItem, setDraggedItem] = useState<FormField | null>(null);
   const [draggedOver, setDraggedOver] = useState<string | null>(null);
-  const { format } = useCurrency();
 
   const draggedElement = useRef<HTMLElement | null>(null);
 
@@ -209,6 +374,7 @@ interface DraggableFieldComponentProps {
   };
   errors: FieldErrors;
   onValidate: (field: keyof FieldErrors | string, value: any) => void;
+  hasScopeOfWork: boolean;
 }
 
 const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
@@ -222,6 +388,7 @@ const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
   dragHandlers,
   errors,
   onValidate,
+  hasScopeOfWork,
 }) => {
   const { format } = useCurrency();
 
@@ -327,25 +494,40 @@ const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
           <div>
             <label htmlFor="subtotal" className="block text-sm font-medium text-gray-700 mb-2">
               {field.label} {field.required && <span className="text-red-500">*</span>}
+              {hasScopeOfWork && (
+                <span className="ml-2 text-xs text-blue-600">
+                  (Auto-calculated from Scope of Work)
+                </span>
+              )}
             </label>
             <input
               type="number"
               id="subtotal"
               value={formData.subtotal}
               onChange={(e) => {
-                const value = parseFloat(e.target.value) || 0;
-                onChange({ subtotal: value });
-                onValidate('subtotal', value);
+                if (!hasScopeOfWork) {
+                  const value = parseFloat(e.target.value) || 0;
+                  onChange({ subtotal: value });
+                  onValidate('subtotal', value);
+                }
               }}
               placeholder="0.00"
               step="0.01"
               min="0"
+              readOnly={hasScopeOfWork}
               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-blue-500 ${
                 errors.subtotal 
                   ? 'border-red-300 focus:ring-red-500' 
-                  : 'border-gray-300 focus:ring-blue-500'
+                  : hasScopeOfWork
+                    ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
+                    : 'border-gray-300 focus:ring-blue-500'
               }`}
             />
+            {hasScopeOfWork && (
+              <p className="mt-1 text-xs text-blue-600">
+                💡 Subtotal is automatically calculated from your Scope of Work items
+              </p>
+            )}
             {errors.subtotal && (
               <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
                 <Icons.AlertCircle />
@@ -701,6 +883,14 @@ const DraggableFieldComponent: React.FC<DraggableFieldComponentProps> = ({
                 />
               );
 
+            case 'scope-of-work':
+              return (
+                <ScopeOfWorkField
+                  field={dynamicField}
+                  onChange={updateDynamicField}
+                />
+              );
+
             default:
               return null;
           }
@@ -791,16 +981,36 @@ const FieldBuilder: React.FC<FieldBuilderProps> = ({ onAddField }) => {
     { value: 'phone', label: 'Phone' },
     { value: 'select', label: 'Dropdown' },
     { value: 'checkbox', label: 'Checkbox' },
-    { value: 'date', label: 'Date' }
+    { value: 'date', label: 'Date' },
+    { value: 'scope-of-work', label: 'Scope of Work' }
   ];
 
   const handleAddField = () => {
     if (!newField.label.trim()) return;
 
-    onAddField({
-      ...newField,
-      value: newField.type === 'checkbox' ? false : ''
-    });
+    // Special handling for scope-of-work fields
+    if (newField.type === 'scope-of-work') {
+      onAddField({
+        ...newField,
+        value: {
+          items: [
+            {
+              srNo: 1,
+              description: '',
+              qty: 1,
+              unit: '',
+              price: 0,
+              total: 0
+            }
+          ]
+        }
+      });
+    } else {
+      onAddField({
+        ...newField,
+        value: newField.type === 'checkbox' ? false : ''
+      });
+    }
 
     setNewField({
       type: 'text',
@@ -1021,13 +1231,18 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
     taxPercentage: quotation?.taxPercentage ? parseFloat(quotation.taxPercentage.toString()) : 0,
     validUntil: quotation?.validUntil ? new Date(quotation.validUntil).toISOString().split('T')[0] : '',
     notes: quotation?.notes || '',
-    dynamicFields: quotation?.formData ? Object.entries(quotation.formData).map(([key, value]) => ({
-      id: key,
-      type: 'text',
-      label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-      value: value,
-      required: false
-    })) : []
+    dynamicFields: quotation?.formData ? Object.entries(quotation.formData).map(([key, value]) => {
+      // Detect scope of work fields by checking if value has items array
+      const isScopeOfWork = value && typeof value === 'object' && Array.isArray(value.items);
+      
+      return {
+        id: key,
+        type: isScopeOfWork ? 'scope-of-work' : 'text',
+        label: key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+        value: value,
+        required: false
+      };
+    }) : []
   });
 
   // SIMPLIFIED: Basic field errors - just like ClientForm
@@ -1042,6 +1257,35 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
     notes: '',
     dynamicFields: {}
   });
+
+  // Calculate subtotal from scope of work items
+  const calculateSubtotalFromScopeOfWork = (dynamicFields: DynamicField[]): number => {
+    const scopeOfWorkFields = dynamicFields.filter(field => field.type === 'scope-of-work');
+    let total = 0;
+    
+    scopeOfWorkFields.forEach(field => {
+      if (field.value?.items && Array.isArray(field.value.items)) {
+        field.value.items.forEach((item: any) => {
+          total += parseFloat(item.total || 0);
+        });
+      }
+    });
+    
+    return total;
+  };
+
+  // Check if we have scope of work fields
+  const hasScopeOfWork = formData.dynamicFields.some(field => field.type === 'scope-of-work');
+
+  // Auto-update subtotal when scope of work changes
+  useEffect(() => {
+    if (hasScopeOfWork) {
+      const calculatedSubtotal = calculateSubtotalFromScopeOfWork(formData.dynamicFields);
+      if (calculatedSubtotal !== formData.subtotal) {
+        setFormData(prev => ({ ...prev, subtotal: calculatedSubtotal }));
+      }
+    }
+  }, [formData.dynamicFields, hasScopeOfWork, formData.subtotal]);
 
   // SIMPLIFIED: Basic validation function
   const validateField = (field: keyof FieldErrors | string, value: any) => {
@@ -1304,6 +1548,7 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
               isDraggedOver={dragAndDropHandlers.draggedOver === field.id}
               errors={errors}
               onValidate={validateField}
+              hasScopeOfWork={hasScopeOfWork}
               dragHandlers={{
                 onDragStart: (e) => dragAndDropHandlers.handleDragStart(e, field),
                 onDragEnd: dragAndDropHandlers.handleDragEnd,

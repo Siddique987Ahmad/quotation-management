@@ -23,6 +23,7 @@ import ClientForm from './components/ClientForm';
 import ClientDetailsView from './components/ClientDetailsView';
 import ClientFiltersBar from './components/ClientFiltersBar';
 import ClientsTable from './components/ClientsTable';
+import DepartmentsSettings from './components/DepartmentsSettings';
 import { ClientFormData, PageMode, ClientsPageState, ClientFilters, } from './types';
 
 const ClientsPage: React.FC = () => {
@@ -34,6 +35,7 @@ const ClientsPage: React.FC = () => {
   // FIX 1: Better mode detection - check for /create FIRST
   const getInitialMode = (): PageMode => {
     if (location.pathname.endsWith('/create')) return 'create';
+    if (location.pathname.endsWith('/departments')) return 'departments';
     if (!id) return 'list';
     if (searchParams.get('edit') === 'true') return 'edit';
     if (location.pathname.endsWith('/edit')) return 'edit';
@@ -575,6 +577,11 @@ const handleCreateClient = async (formData: ClientFormData) => {
           loading={state.selectedClient.isLoading}
           error={state.selectedClient.error ?? null}
         />
+      )}
+
+      {/* Department Management */}
+      {state.mode === 'departments' && (
+        <DepartmentsSettings />
       )}
 
       {/* Clients List */}

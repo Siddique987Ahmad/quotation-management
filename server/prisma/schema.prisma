@@ -8,27 +8,25 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      Role     @default(USER)
-  customPermissions Json?    // Optional: Store custom permissions as array of strings
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  quotations Quotation[]
-  invoices   Invoice[]
-  passwordResets PasswordReset[]
-  createdEmailTemplates EmailTemplate[]    @relation("EmailTemplateCreator")
-  updatedEmailTemplates EmailTemplate[]    @relation("EmailTemplateUpdater")
-
+  id                    String          @id @default(uuid())
+  email                 String          @unique
+  password              String
+  firstName             String
+  lastName              String
+  role                  Role            @default(USER)
+  customPermissions     Json?
+  isActive              Boolean         @default(true)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  createdEmailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
+  updatedEmailTemplates EmailTemplate[] @relation("EmailTemplateUpdater")
+  invoices              Invoice[]
+  passwordResets        PasswordReset[]
+  quotations            Quotation[]
 
   @@map("users")
 }
+
 model PasswordReset {
   id        String   @id @default(uuid())
   email     String
@@ -37,20 +35,18 @@ model PasswordReset {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  
-  // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([token])
   @@index([email])
   @@map("password_resets")
 }
 
 model Client {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   companyName   String
   contactPerson String
-  email         String   @unique
+  email         String      @unique
   phone         String?
   address       String?
   city          String?
@@ -58,95 +54,92 @@ model Client {
   zipCode       String?
   country       String?
   taxId         String?
-  customFields  Json?    // Store client-specific form configurations
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  // Department relation (required)
-  departmentId  String
-  department    Department @relation(fields: [departmentId], references: [id])
+  customFields  Json?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  departmentId  String?
+  department    Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict, map: "clients_departmentid_fkey")
+  invoices      Invoice[]
+  quotations    Quotation[]
 
-  // Relations
-  quotations Quotation[]
-  invoices   Invoice[]
-
+  @@index([departmentId], map: "clients_departmentid_idx")
   @@map("clients")
 }
 
 model Department {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  clients   Client[]
+  id            String   @id @default(uuid())
+  name          String   @unique
+  createdAt     DateTime @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  contactPerson String?
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  clients       Client[]
 
   @@map("departments")
 }
 
 model Quotation {
-  id              String          @id @default(uuid())
-  quotationNumber String          @unique
-  title           String
-  description     String?
-  clientId        String
-  userId          String
-  status          QuotationStatus @default(DRAFT)
-  formData        Json            // Dynamic form data based on client
-  subtotal        Decimal         @db.Decimal(12, 2)
-  taxPercentage   Decimal         @db.Decimal(5, 2) @default(0)
-  taxAmount       Decimal         @db.Decimal(12, 2)
-  gstPercentage   Decimal         @db.Decimal(5, 2) @default(0)
-  gstAmount       Decimal         @db.Decimal(12, 2) @default(0)
-  pstPercentage   Decimal         @db.Decimal(5, 2) @default(0)
-  pstAmount       Decimal         @db.Decimal(12, 2) @default(0)
-  combinedTaxAmount Decimal       @db.Decimal(12, 2) @default(0)
-  totalAmount     Decimal         @db.Decimal(12, 2)
-  validUntil      DateTime?
-  notes           String?
-  emailSent       Boolean         @default(false)
-  emailSentAt     DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  // Relations
-  client   Client    @relation(fields: [clientId], references: [id])
-  user     User      @relation(fields: [userId], references: [id])
-  invoices Invoice[]
+  id                String          @id @default(uuid())
+  quotationNumber   String          @unique
+  title             String
+  description       String?
+  clientId          String
+  userId            String
+  status            QuotationStatus @default(DRAFT)
+  formData          Json
+  subtotal          Decimal         @db.Decimal(12, 2)
+  taxPercentage     Decimal         @default(0) @db.Decimal(5, 2)
+  taxAmount         Decimal         @db.Decimal(12, 2)
+  gstPercentage     Decimal         @default(0) @db.Decimal(5, 2)
+  gstAmount         Decimal         @default(0) @db.Decimal(12, 2)
+  pstPercentage     Decimal         @default(0) @db.Decimal(5, 2)
+  pstAmount         Decimal         @default(0) @db.Decimal(12, 2)
+  combinedTaxAmount Decimal         @default(0) @db.Decimal(12, 2)
+  totalAmount       Decimal         @db.Decimal(12, 2)
+  validUntil        DateTime?
+  notes             String?
+  emailSent         Boolean         @default(false)
+  emailSentAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  invoices          Invoice[]
+  client            Client          @relation(fields: [clientId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
 
   @@map("quotations")
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique
-  quotationId   String
-  clientId      String
-  userId        String
-  type          InvoiceType   @default(TAX_INVOICE_1)
-  subtotal      Decimal       @db.Decimal(12, 2)
-  taxPercentage Decimal       @db.Decimal(5, 2)
-  taxAmount     Decimal       @db.Decimal(12, 2)
-  gstPercentage Decimal       @db.Decimal(5, 2) @default(0)
-  gstAmount     Decimal       @db.Decimal(12, 2) @default(0)
-  pstPercentage Decimal       @db.Decimal(5, 2) @default(0)
-  pstAmount     Decimal       @db.Decimal(12, 2) @default(0)
-  combinedTaxAmount Decimal   @db.Decimal(12, 2) @default(0)
-  totalAmount   Decimal       @db.Decimal(12, 2)
-  status        InvoiceStatus @default(PENDING)
-  dueDate       DateTime?
-  paidDate      DateTime?
-  emailSent     Boolean       @default(false)
-  emailSentAt   DateTime?
-  pdfPath       String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  quotation Quotation @relation(fields: [quotationId], references: [id])
-  client    Client    @relation(fields: [clientId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  id                String        @id @default(uuid())
+  invoiceNumber     String        @unique
+  quotationId       String
+  clientId          String
+  userId            String
+  type              InvoiceType   @default(TAX_INVOICE_1)
+  subtotal          Decimal       @db.Decimal(12, 2)
+  taxPercentage     Decimal       @db.Decimal(5, 2)
+  taxAmount         Decimal       @db.Decimal(12, 2)
+  gstPercentage     Decimal       @default(0) @db.Decimal(5, 2)
+  gstAmount         Decimal       @default(0) @db.Decimal(12, 2)
+  pstPercentage     Decimal       @default(0) @db.Decimal(5, 2)
+  pstAmount         Decimal       @default(0) @db.Decimal(12, 2)
+  combinedTaxAmount Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount       Decimal       @db.Decimal(12, 2)
+  status            InvoiceStatus @default(PENDING)
+  dueDate           DateTime?
+  paidDate          DateTime?
+  emailSent         Boolean       @default(false)
+  emailSentAt       DateTime?
+  pdfPath           String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  client            Client        @relation(fields: [clientId], references: [id])
+  quotation         Quotation     @relation(fields: [quotationId], references: [id])
+  user              User          @relation(fields: [userId], references: [id])
 
   @@map("invoices")
 }
@@ -155,8 +148,8 @@ model FormTemplate {
   id          String   @id @default(uuid())
   name        String
   description String?
-  clientId    String?  // Optional: client-specific template
-  fields      Json     // Form field definitions
+  clientId    String?
+  fields      Json
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -167,10 +160,10 @@ model FormTemplate {
 model SystemSettings {
   id          String   @id @default(uuid())
   key         String   @unique
-  value       Json     // Store settings as JSON to handle different data types
-  category    String?   // e.g., 'company', 'email', 'tax', 'invoice', 'notifications', 'security','rolePermissions'
-  description String?  // Optional description for the setting
-  isEncrypted Boolean  @default(false) // Flag for sensitive data like passwords
+  value       Json
+  category    String?
+  description String?
+  isEncrypted Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -179,30 +172,42 @@ model SystemSettings {
   @@map("system_settings")
 }
 
+model QuotationTerm {
+  id        String   @id @default(uuid())
+  label     String
+  value     String
+  highlight Boolean  @default(false)
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+  @@map("quotation_terms")
+}
+
 model EmailTemplate {
-  id          String              @id @default(uuid())
-  templateKey String              @unique // e.g., 'quotation_approved', 'custom_welcome'
-  name        String              // Human-readable name
+  id          String                @id @default(uuid())
+  templateKey String                @unique
+  name        String
   description String?
   category    EmailTemplateCategory @default(CUSTOM)
-  type        EmailTemplateType   @default(CUSTOM)
-  enabled     Boolean             @default(true)
-  isSystem    Boolean             @default(false) // System templates cannot be deleted
+  type        EmailTemplateType     @default(CUSTOM)
+  enabled     Boolean               @default(true)
+  isSystem    Boolean               @default(false)
   subject     String
-  htmlContent String?             // For custom HTML templates
-  textContent String?             // For custom content
-  sections    Json                // Template sections configuration
-  variables   Json                // Required/optional variables
-  metadata    Json?               // Additional metadata (colors, icons, etc.)
-  version     Int                 @default(1)
+  htmlContent String?
+  textContent String?
+  sections    Json
+  variables   Json
+  metadata    Json?
+  version     Int                   @default(1)
   createdBy   String
   updatedBy   String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-
-  // Relations
-  creator   User  @relation("EmailTemplateCreator", fields: [createdBy], references: [id])
-  updater   User? @relation("EmailTemplateUpdater", fields: [updatedBy], references: [id])
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  creator     User                  @relation("EmailTemplateCreator", fields: [createdBy], references: [id])
+  updater     User?                 @relation("EmailTemplateUpdater", fields: [updatedBy], references: [id])
 
   @@index([category])
   @@index([type])
@@ -211,11 +216,9 @@ model EmailTemplate {
   @@map("email_templates")
 }
 
-
-// Enums
 enum Role {
   SUPER_ADMIN
-  ADMIN  
+  ADMIN
   MANAGER
   USER
 }

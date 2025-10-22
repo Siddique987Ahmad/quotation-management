@@ -522,20 +522,21 @@ const handleStatusUpdate = async (quotation: Quotation, status: QuotationStatus)
       alert('Failed to download PDFs. Please try again.');
     }
   };
-const handleSendEmail = async (quotation: Quotation) => {
+const handleSendEmail = async (quotation: Quotation, departmentId?: string) => {
   if (!quotation.client?.email) {
     alert('Client email not found. Please update client information.');
     return;
   }
 
-  if (!window.confirm(`Send quotation ${quotation.quotationNumber} to ${quotation.client.email}?`)) {
+  const departmentText = departmentId ? ' to selected department' : ' to all departments';
+  if (!window.confirm(`Send quotation ${quotation.quotationNumber}${departmentText}?`)) {
     return;
   }
 
   try {
-    console.log('🔄 Sending email for quotation:', quotation.id);
+    console.log('🔄 Sending email for quotation:', quotation.id, departmentId ? `to department: ${departmentId}` : 'to all departments');
     
-    const response = await quotationsAPI.sendEmail(quotation.id);
+    const response = await quotationsAPI.sendEmail(quotation.id, departmentId);
     
     console.log('✅ Email sent successfully:', response.data);
     
@@ -543,8 +544,9 @@ const handleSendEmail = async (quotation: Quotation) => {
     const templateSource = response.data.data?.templateSource;
     const sourceInfo = templateSource === 'database' ? ' (using custom template)' : ' (using default template)';
     const messageId = response.data.data?.messageId ? ` (ID: ${response.data.data.messageId.substring(0, 8)}...)` : '';
+    const departmentInfo = departmentId ? ' to selected department' : ' to all departments';
     
-    alert(`Quotation sent successfully to ${quotation.client.email}${sourceInfo}${messageId}`);
+    alert(`Quotation sent successfully${departmentInfo}${sourceInfo}${messageId}`);
     
     // Reload quotation to update email status
     if (state.mode === 'view') {

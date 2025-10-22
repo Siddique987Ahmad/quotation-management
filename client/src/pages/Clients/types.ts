@@ -1,6 +1,6 @@
 import { Client, AsyncState } from '../../types';
 
-export type PageMode = 'list' | 'create' | 'view' | 'edit';
+export type PageMode = 'list' | 'create' | 'view' | 'edit' | 'departments';
 
 export interface ClientFormData {
   companyName: string;
@@ -13,7 +13,6 @@ export interface ClientFormData {
   zipCode: string;
   country: string;
   taxId: string;
-  departmentId: string;
 }
 
 export interface ClientFilters {

@@ -37,7 +37,11 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
-  console.log(`[CORS] Static file request from origin: ${origin || 'no-origin'}`);
+  // Fix CORP (Cross-Origin-Resource-Policy) for logo loading
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  
+  // console.log(`[CORS] Static file request from origin: ${origin || 'no-origin'}`);
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -67,15 +71,16 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "https:", "http:", "*"],
       fontSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "*"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
   },
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
 }));
 
 // CORS configuration
@@ -166,7 +171,7 @@ console.log('🔓 Using PERMISSIVE CORS configuration - allowing all origins');
 app.use(cors({
   origin: function (origin, callback) {
     // Allow ALL origins - this resolves CORS issues immediately
-    console.log(`[CORS] Allowing origin: ${origin || 'no-origin'}`);
+    // console.log(`[CORS] Allowing origin: ${origin || 'no-origin'}`);
     return callback(null, true);
   },
   credentials: true,
@@ -216,11 +221,11 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
-  console.log(`[CORS FALLBACK] Request from origin: ${origin || 'no-origin'} to ${req.path}`);
+  // console.log(`[CORS FALLBACK] Request from origin: ${origin || 'no-origin'} to ${req.path}`);
   
   // Handle preflight requests immediately
   if (req.method === 'OPTIONS') {
-    console.log(`[CORS FALLBACK] Handling OPTIONS request for ${req.path}`);
+    // console.log(`[CORS FALLBACK] Handling OPTIONS request for ${req.path}`);
     return res.status(200).end();
   }
   
@@ -396,19 +401,19 @@ app.use(express.urlencoded({
 //   lastModified: true
 // }));
 
-// Request logging middleware (development)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    const timestamp = new Date().toISOString();
-    const method = req.method;
-    const url = req.originalUrl;
-    const userAgent = req.get('User-Agent') || 'Unknown';
-    const ip = req.ip || req.connection.remoteAddress;
-    
-    console.log(`[${timestamp}] ${method} ${url} - ${ip} - ${userAgent}`);
-    next();
-  });
-}
+// Request logging middleware (development) - DISABLED for performance
+// if (process.env.NODE_ENV === 'development') {
+//   app.use((req, res, next) => {
+//     const timestamp = new Date().toISOString();
+//     const method = req.method;
+//     const url = req.originalUrl;
+//     const userAgent = req.get('User-Agent') || 'Unknown';
+//     const ip = req.ip || req.connection.remoteAddress;
+//     
+//     console.log(`[${timestamp}] ${method} ${url} - ${ip} - ${userAgent}`);
+//     next();
+//   });
+// }
 
 // CORS test endpoint
 app.get('/cors-test', (req, res) => {
@@ -492,6 +497,7 @@ app.use('/api/clients', require('./routes/clients'));
 app.use('/api/quotations', require('./routes/quotations'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/terms', require('./routes/terms'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/departments', require('./routes/departments'));
 

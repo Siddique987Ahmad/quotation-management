@@ -91,6 +91,18 @@ const AppRoutes: React.FC = () => {
           }
         />
 
+        {/* Department Management - Users with clients permission can manage departments */}
+        <Route
+          path="clients/departments"
+          element={
+            <ProtectedRoute
+              requiredPermissions={[{ resource: "clients", action: "read" }]}
+            >
+              <ClientsPage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Quotations - Employees (USER role) and above can access */}
         <Route
           path="quotations"

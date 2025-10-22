@@ -1,0 +1,407 @@
+router.post('/:id/send-email', [
+  validateUUIDParam('id'),
+  requirePermission(PERMISSIONS.QUOTATIONS.READ)
+], async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { departmentId } = req.body;
+    const { prisma } = require('../config/database');
+    const { canAccessRecord } = require('../middleware/userFiltering');
+    const { generateQuotationPDF } = require('../services/pdfService');
+    const { sendEmail, getTransporter } = require('../services/emailService');
+
+    console.log(`🔄 Starting email send for quotation: ${id}`, departmentId ? `to department: ${departmentId}` : 'to all departments');
+
+    // Get quotation with full details
+    const quotation = await prisma.quotation.findUnique({
+      where: { id },
+      include: {
+        client: {
+          include: {
+            department: true
+          }
+        },
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    if (!quotation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quotation not found'
+      });
+    }
+
+    console.log(`✅ Quotation found: ${quotation.quotationNumber}`);
+
+    // Check access permissions
+    const canAccess = await canAccessRecord(req, quotation.userId);
+    if (!canAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    // Get company settings from database
+    const companyData = await settingsService.getCompanySettings();
+
+    // Generate PDF
+    console.log('📄 Generating PDF...');
+    const pdfResult = await generateQuotationPDF(
+      quotation,
+      quotation.client,
+      quotation.user,
+      companyData
+    );
+
+    if (!pdfResult || !pdfResult.pdf) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to generate PDF'
+      });
+    }
+
+    console.log('✅ PDF generated successfully');
+
+    // Get target clients based on department selection
+    let targetClients = [];
+    
+    if (departmentId) {
+      // Send to specific department
+      console.log(`📧 Sending to department: ${departmentId}`);
+      const department = await prisma.department.findUnique({
+        where: { id: departmentId },
+        include: {
+          clients: {
+            where: {
+              email: { not: null },
+              isActive: true
+            }
+          }
+        }
+      });
+      
+      if (!department) {
+        return res.status(404).json({
+          success: false,
+          message: 'Department not found'
+        });
+      }
+      
+      targetClients = department.clients;
+      console.log(`📧 Found ${targetClients.length} clients in department: ${department.name}`);
+    } else {
+      // Send to all departments
+      console.log('📧 Sending to all departments');
+      targetClients = await prisma.client.findMany({
+        where: {
+          email: { not: null },
+          isActive: true
+        }
+      });
+      console.log(`📧 Found ${targetClients.length} total clients`);
+    }
+
+    if (targetClients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No clients found to send email to'
+      });
+    }
+
+    // PRIORITY 1: Try using your existing email template system
+    console.log('📋 Checking for database email template...');
+    let emailResult = null;
+    let usedDatabaseTemplate = false;
+
+    try {
+      // Check if quotation_sent template exists and is enabled
+      const template = await prisma.emailTemplate.findFirst({
+        where: {
+          templateKey: 'quotation_sent',
+          enabled: true
+        }
+      });
+
+      if (template) {
+        console.log('✅ Found database template: quotation_sent');
+        
+        // Use your existing sendQuotationEmail function
+        const { sendQuotationEmail } = require('../services/emailService');
+        emailResult = await sendQuotationEmail(
+          quotation,
+          quotation.client,
+          pdfResult.pdf
+        );
+        usedDatabaseTemplate = true;
+        console.log('✅ Email sent using database template');
+        
+      } else {
+        console.warn('⚠️ No enabled quotation_sent template found in database');
+        throw new Error('No database template available');
+      }
+
+    } catch (templateError) {
+      console.warn('⚠️ Database template method failed:', templateError.message);
+      
+      // PRIORITY 2: Create template on-the-fly if none exists
+      try {
+        console.log('🔧 Creating missing quotation_sent template...');
+        
+        const templateData = {
+          templateKey: 'quotation_sent',
+          name: 'Quotation Sent',
+          description: 'Email sent when quotation is sent to client',
+          category: 'QUOTATION',
+          type: 'QUOTATION_SENT',
+          enabled: true,
+          isSystem: true,
+          subject: 'Quotation {{quotationNumber}} - {{quotationTitle}}',
+          htmlContent: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+              <div style="background: #059669; padding: 30px; text-align: center; color: white;">
+                <h1 style="margin: 0; font-size: 28px;">New Quotation</h1>
+              </div>
+              
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #374151; margin: 0 0 20px 0;">Hello {{clientName}},</h2>
+                
+                <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                  Thank you for your interest in our services. Please find your quotation attached for your review.
+                </p>
+                
+                <div style="background: #f8f9fa; padding: 25px; margin: 25px 0; border-radius: 8px; border-left: 4px solid #059669;">
+                  <h3 style="color: #374151; margin: 0 0 15px 0; font-size: 18px;">Quotation Details:</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 8px 0; font-weight: bold; color: #374151;">Quotation Number:</td>
+                      <td style="padding: 8px 0; color: #6b7280;">{{quotationNumber}}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; font-weight: bold; color: #374151;">Project:</td>
+                      <td style="padding: 8px 0; color: #6b7280;">{{quotationTitle}}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0; font-weight: bold; color: #374151;">Total Amount:</td>
+                      <td style="padding: 8px 0; color: #059669; font-weight: bold; font-size: 18px;">{{totalAmount}}</td>
+                    </tr>
+                    {{#if validUntil}}
+                    <tr>
+                      <td style="padding: 8px 0; font-weight: bold; color: #374151;">Valid Until:</td>
+                      <td style="padding: 8px 0; color: #6b7280;">{{validUntil}}</td>
+                    </tr>
+                    {{/if}}
+                  </table>
+                </div>
+                
+                {{#if description}}
+                <div style="margin: 25px 0;">
+                  <h4 style="color: #374151; margin: 0 0 10px 0;">Project Description:</h4>
+                  <p style="color: #6b7280; line-height: 1.6; margin: 0; padding: 15px; background: #f3f4f6; border-radius: 6px;">
+                    {{description}}
+                  </p>
+                </div>
+                {{/if}}
+                
+                {{#if notes}}
+                <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #3b82f6;">
+                  <h4 style="color: #1e40af; margin: 0 0 10px 0; font-size: 16px;">Important Notes:</h4>
+                  <p style="color: #1e40af; margin: 0; line-height: 1.6;">{{notes}}</p>
+                </div>
+                {{/if}}
+                
+                <div style="margin: 30px 0; padding: 20px; background: #fefce8; border-radius: 8px; border-left: 4px solid #eab308;">
+                  <p style="color: #a16207; margin: 0; font-size: 14px;">
+                    <strong>📎 Please find the detailed quotation attached as a PDF.</strong>
+                  </p>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin: 25px 0 0 0;">
+                  If you have any questions or need clarification, please don't hesitate to contact us. We look forward to working with you!
+                </p>
+                
+                <div style="margin: 30px 0 0 0; padding: 20px 0; border-top: 1px solid #e5e7eb;">
+                  <p style="color: #374151; margin: 0; font-weight: 500;">Best regards,</p>
+                  <p style="color: #059669; margin: 5px 0 0 0; font-weight: bold;">{{companyName}}</p>
+                </div>
+              </div>
+              
+              <div style="background: #374151; color: #9ca3af; padding: 25px; text-align: center; font-size: 14px;">
+                <p style="margin: 0;">&copy; {{currentYear}} {{companyName}}. All rights reserved.</p>
+                <p style="margin: 5px 0 0 0;">Sent on {{sentDate}}</p>
+              </div>
+            </div>
+          `,
+          variables: ['clientName', 'quotationNumber', 'quotationTitle', 'description', 'totalAmount', 'validUntil', 'notes', 'sentDate', 'companyName', 'currentYear'],
+          sections: {},
+          createdBy: req.user?.id || 'system'
+        };
+
+        // Check if template already exists
+        const existingTemplate = await prisma.emailTemplate.findUnique({
+          where: { templateKey: 'quotation_sent' }
+        });
+
+        if (!existingTemplate) {
+          // Create the template only if it doesn't exist
+          await settingsService.createEmailTemplate(templateData, req.user?.id || 'system');
+          console.log('✅ Created quotation_sent template');
+        } else {
+          console.log('✅ Using existing quotation_sent template');
+        }
+
+        // Now try sending email again with the newly created template
+        const { sendQuotationEmail } = require('../services/emailService');
+        emailResult = await sendQuotationEmail(
+          quotation,
+          quotation.client,
+          pdfResult.pdf
+        );
+        usedDatabaseTemplate = true;
+        console.log('✅ Email sent using newly created template');
+
+      } catch (createTemplateError) {
+        console.error('❌ Failed to create template, falling back to basic email:', createTemplateError.message);
+        
+        // PRIORITY 3: Last resort - basic email without template system
+        const nodemailer = require('nodemailer');
+        
+        // Get email settings and company settings
+        const [emailSettings, companySettings] = await Promise.all([
+          settingsService.getEmailSettings(),
+          settingsService.getCompanySettings()
+        ]);
+
+        // Initialize transporter
+        const transporter = nodemailer.createTransport({
+          host: emailSettings.host || process.env.EMAIL_HOST || 'smtp.gmail.com',
+          port: emailSettings.port || process.env.EMAIL_PORT || 587,
+          secure: emailSettings.secure || process.env.EMAIL_SECURE === 'true',
+          auth: {
+            user: emailSettings.username || process.env.EMAIL_USER,
+            pass: emailSettings.password || process.env.EMAIL_PASS
+          }
+        });
+
+        // Helper functions
+        const toNumber = (value, defaultValue = 0) => {
+          if (value === null || value === undefined) return defaultValue;
+          if (typeof value === 'number') return value;
+          if (typeof value === 'string') return parseFloat(value) || defaultValue;
+          if (value && typeof value.toNumber === 'function') return value.toNumber();
+          return parseFloat(value) || defaultValue;
+        };
+
+        const formatCurrency = (amount) => {
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 2,
+          }).format(toNumber(amount));
+        };
+
+        const getClientName = (clientData) => {
+          if (clientData.contactPerson && !(/^\d{8,}$/.test(clientData.contactPerson.replace(/[\s\-\(\)\+]/g, '')))) {
+            return clientData.contactPerson.trim();
+          }
+          return clientData.companyName || 'Valued Client';
+        };
+
+        // Simple fallback email
+        const clientName = getClientName(quotation.client);
+        const totalAmount = formatCurrency(quotation.totalAmount);
+
+        const mailOptions = {
+          from: {
+            name: emailSettings.fromName || companySettings.name || 'Quotation Management System',
+            address: emailSettings.fromEmail || emailSettings.username || process.env.EMAIL_FROM
+          },
+          to: quotation.client.email,
+          subject: `Quotation ${quotation.quotationNumber} - ${quotation.title}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Hello ${clientName},</h2>
+              <p>Please find your quotation attached for your review.</p>
+              <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px;">
+                <h3>Quotation Details:</h3>
+                <p><strong>Quotation Number:</strong> ${quotation.quotationNumber}</p>
+                <p><strong>Project:</strong> ${quotation.title}</p>
+                <p><strong>Total Amount:</strong> ${totalAmount}</p>
+                ${quotation.validUntil ? `<p><strong>Valid Until:</strong> ${new Date(quotation.validUntil).toLocaleDateString()}</p>` : ''}
+              </div>
+              <p>If you have any questions, please contact us.</p>
+              <p>Best regards,<br>${companySettings.name || 'Your Company'}</p>
+            </div>
+          `,
+          replyTo: emailSettings.replyTo || emailSettings.fromEmail || emailSettings.username,
+          attachments: [
+            {
+              filename: `quotation-${quotation.quotationNumber}.pdf`,
+              content: pdfResult.pdf,
+              contentType: 'application/pdf'
+            }
+          ]
+        };
+
+        // Send fallback email
+        const info = await transporter.sendMail(mailOptions);
+        emailResult = {
+          success: true,
+          messageId: info.messageId,
+          sentTo: quotation.client.email
+        };
+        
+        console.log('✅ Email sent using basic fallback method');
+      }
+    }
+
+    if (!emailResult) {
+      throw new Error('All email sending methods failed');
+    }
+
+    // Update quotation status
+    console.log('💾 Updating quotation status...');
+    await prisma.quotation.update({
+      where: { id },
+      data: {
+        emailSent: true,
+        emailSentAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+
+    console.log('✅ Quotation email process completed successfully');
+
+    res.status(200).json({
+      success: true,
+      message: `Quotation sent successfully to ${quotation.client.email}`,
+      data: {
+        emailSent: true,
+        sentTo: quotation.client.email,
+        messageId: emailResult.messageId || emailResult.result?.messageId,
+        quotationNumber: quotation.quotationNumber,
+        templateSource: usedDatabaseTemplate ? 'database' : 'fallback'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ EMAIL SENDING ERROR:', {
+      message: error.message,
+      stack: error.stack,
+      quotationId: req.params.id
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send quotation email',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Email sending failed'
+    });
+  }
+});
