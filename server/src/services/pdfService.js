@@ -55,6 +55,55 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
     })}`;
   };
 
+  const convertNumberToWords = (num) => {
+    // Handle decimal numbers by rounding to nearest integer
+    const roundedNum = Math.round(parseFloat(num) || 0);
+    
+    const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+    const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    
+    if (roundedNum === 0) return 'zero';
+    
+    const convertHundreds = (n) => {
+      let result = '';
+      if (n > 99) {
+        result += ones[Math.floor(n / 100)] + ' hundred';
+        n %= 100;
+        if (n > 0) result += ' ';
+      }
+      if (n > 19) {
+        result += tens[Math.floor(n / 10)];
+        n %= 10;
+        if (n > 0) result += ' ' + ones[n];
+      } else if (n > 9) {
+        result += teens[n - 10];
+      } else if (n > 0) {
+        result += ones[n];
+      }
+      return result;
+    };
+    
+    let result = '';
+    let remaining = roundedNum;
+    
+    if (remaining >= 100000) {
+      result += convertHundreds(Math.floor(remaining / 100000)) + ' hundred thousand';
+      remaining %= 100000;
+      if (remaining > 0) result += ' ';
+    }
+    if (remaining >= 1000) {
+      result += convertHundreds(Math.floor(remaining / 1000)) + ' thousand';
+      remaining %= 1000;
+      if (remaining > 0) result += ' ';
+    }
+    if (remaining > 0) {
+      result += convertHundreds(remaining);
+    }
+    
+    return result.charAt(0).toUpperCase() + result.slice(1);
+  };
+
   const getInvoiceTypeLabel = (type) => {
     return type.replace(/TAX_INVOICE_/, 'Tax Invoice Type ').replace(/_/g, ' ');
   };
@@ -82,27 +131,36 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
         return companyData.logo;
       }
 
-      // Try to read local logo file and convert to data URI
-      try {
-        const fs = require('fs');
-        const path = require('path');
-        
-        // Construct absolute path to logo
-        const logoPath = path.resolve(process.cwd(), 'public', 'uploads', 'logos', companyData.logo);
-        
-        if (fs.existsSync(logoPath)) {
-          const logoBuffer = fs.readFileSync(logoPath);
-          const logoBase64 = logoBuffer.toString('base64');
-          const mimeType = path.extname(companyData.logo).toLowerCase() === '.png' ? 'image/png' : 'image/jpeg';
-          return `data:${mimeType};base64,${logoBase64}`;
-        }
-      } catch (fileError) {
-        console.log('Could not read local logo file:', fileError.message);
-      }
+      // Normalize stored path (usually '/uploads/logos/filename.png' or just 'filename.png')
+      const relativeLogoPath = companyData.logo.startsWith('/')
+        ? companyData.logo.replace(/^\//, '')
+        : `uploads/${companyData.logo}`.replace(/^\//, '');
 
-      // Fallback: construct absolute HTTP URL
-      const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      return `${baseUrl}/uploads/logos/${companyData.logo}`;
+      // Try to inline from local filesystem to avoid CORS/network issues in Puppeteer
+      const publicDir = path.resolve(__dirname, '../public');
+      // If `companyData.logo` was '/uploads/..', this resolves to '<project>/server/public/uploads/...'
+      const filePath = path.resolve(publicDir, relativeLogoPath);
+
+      // Attempt to read the file and convert to base64 data URL
+      return fs.readFile(filePath)
+        .then(buffer => {
+          const ext = path.extname(filePath).toLowerCase().replace('.', '') || 'png';
+          const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+          return `data:${mime};base64,${buffer.toString('base64')}`;
+        })
+        .catch(() => {
+          // Fallback to constructing an absolute URL served by Express '/uploads'
+          const baseUrl = process.env.SERVER_PUBLIC_URL
+            || process.env.PUBLIC_BASE_URL
+            || (process.env.NODE_ENV === 'development'
+                  ? 'http://localhost:5000'
+                  : (process.env.VPS_IP ? `http://${process.env.VPS_IP}:5000` : 'http://127.0.0.1:5000'));
+
+          const httpPath = companyData.logo.startsWith('/')
+            ? companyData.logo
+            : `/uploads/${companyData.logo}`;
+          return `${baseUrl}${httpPath}`;
+        });
     } catch (error) {
       console.error('Error getting logo URL:', error);
       return null;
@@ -153,20 +211,20 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .logo {
-                width: 150px;
+                width: 200px;
                 height: auto;
                 margin: 0 0 8px 0;
                 border: none;
             }
             
             .logo-placeholder {
-                width: 150px;
+                width: 200px;
                 height: 60px;
-                border: 2px dashed #ccc;
+                margin: 0 0 8px 0;
+                border: 1px solid #ddd;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                margin-bottom: 8px;
                 background: #f9f9f9;
             }
             
@@ -177,27 +235,44 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .company-details {
-                text-align: right;
+                text-align: center;
                 flex: 1;
             }
             
             .company-name {
                 font-size: 18px;
                 font-weight: bold;
-                margin-bottom: 8px;
-                color: #1f2937;
+                margin-bottom: 6px;
+                color: #1f6feb;
             }
             
             .company-info {
                 font-size: 12px;
                 line-height: 1.4;
                 color: #000;
-                text-align: right;
+                display: flex;
+                justify-content: center;
+                gap: 16px;
+                align-items: center;
                 font-weight: 600;
+                white-space: nowrap;
             }
             
-            .company-info div {
-                margin-bottom: 4px;
+            .company-info span {
+                margin-bottom: 0;
+            }
+            
+            .company-address {
+                font-size: 12px;
+                line-height: 1.4;
+                color: #000;
+                text-align: center;
+                font-weight: 600;
+                margin-top: 4px;
+            }
+            
+            .company-address div {
+                margin-bottom: 2px;
             }
             
             .invoice-title {
@@ -227,27 +302,105 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 margin-top: 10px;
             }
             
-            .billing-info {
+            .invoice-details {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 40px;
+                margin-bottom: 30px;
+                margin-top: 20px;
             }
             
-            .billing-section {
+            .invoice-left {
                 flex: 1;
-                margin-right: 40px;
+                text-align: left;
             }
             
-            .billing-section:last-child {
-                margin-right: 0;
+            .invoice-center {
+                flex: 1;
+                text-align: left;
+                padding: 0 20px;
             }
             
-            .billing-section h3 {
+            .invoice-right {
+                flex: 1;
+                text-align: right;
+            }
+            
+            .date-section {
+                margin-bottom: 10px;
+            }
+            
+            .date-label {
+                font-weight: bold;
+                font-size: 14px;
                 color: #1f2937;
+            }
+            
+            .date-value {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
+                margin-top: 2px;
+            }
+            
+            .to-section {
+                margin-bottom: 10px;
+            }
+            
+            .to-label {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
+            }
+            
+            .client-name {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
+                margin-top: 2px;
+            }
+            
+            .client-address {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
+                margin-top: 2px;
+            }
+            
+            .client-city {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
+                margin-top: 2px;
+                text-decoration: underline;
+            }
+            
+            .invoice-title-section {
+                text-align: right;
+            }
+            
+            .invoice-title-text {
+                font-weight: bold;
+                font-size: 28px;
+                color: #1f2937;
+                text-decoration: underline;
                 margin-bottom: 15px;
-                font-size: 16px;
-                border-bottom: 2px solid #e5e7eb;
-                padding-bottom: 8px;
+                text-transform: uppercase;
+            }
+            
+            .attn-section {
+                margin-top: 10px;
+            }
+            
+            .attn-label {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
+            }
+            
+            .attn-value {
+                font-weight: bold;
+                font-size: 14px;
+                color: #1f2937;
             }
             
             .billing-section p {
@@ -255,29 +408,111 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 color: #4b5563;
             }
             
-            .invoice-table {
+            .scope-of-work-section {
+                margin-bottom: 30px;
+                position: relative;
+            }
+            
+            .scope-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 30px;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                border: none;
             }
             
-            .invoice-table th {
-                background: #f3f4f6;
-                padding: 15px;
+            .scope-table th {
+                background: #dc2626;
+                padding: 8px;
                 text-align: left;
                 font-weight: bold;
-                color: #374151;
-                border-bottom: 2px solid #d1d5db;
+                color: #fff;
+                border: none;
+                border-bottom: 2px solid #000;
+                font-size: 12px;
             }
             
-            .invoice-table td {
-                padding: 15px;
-                border-bottom: 1px solid #e5e7eb;
+            .scope-table td {
+                padding: 8px;
+                border: none;
+                font-size: 12px;
+                background: #fff;
             }
             
-            .invoice-table tr:nth-child(even) {
-                background: #f9fafb;
+            .scope-table thead th:first-child,
+            .scope-table tbody td:first-child {
+                text-align: center;
+                width: 8%;
+            }
+            
+            .scope-table thead th:nth-child(2),
+            .scope-table tbody td:nth-child(2) {
+                text-align: center;
+                width: 10%;
+            }
+            
+            .scope-table thead th:nth-child(3),
+            .scope-table tbody td:nth-child(3) {
+                text-align: left;
+                width: 42%;
+            }
+            
+            .scope-table thead th:nth-child(4),
+            .scope-table tbody td:nth-child(4) {
+                text-align: right;
+                width: 20%;
+            }
+            
+            .scope-table thead th:nth-child(5),
+            .scope-table tbody td:nth-child(5) {
+                text-align: right;
+                width: 20%;
+            }
+            
+            .summary-section {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 20px;
+            }
+            
+            .summary-box {
+                width: 300px;
+                border: 2px solid #000;
+                background: #fff;
+            }
+            
+            .summary-line {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 12px;
+                font-size: 12px;
+                font-weight: bold;
+                border-bottom: 1px solid #000;
+            }
+            
+            .summary-line:last-child {
+                border-bottom: none !important;
+            }
+            
+            .total-due {
+                background: #fbbf24 !important;
+                padding: 8px 12px;
+                font-weight: bold;
+                border-radius: 0;
+            }
+            
+            .amount-words {
+                margin-top: 15px;
+                font-size: 12px;
+                color: #000;
+                font-weight: normal;
+            }
+            
+            .amount-words strong {
+                font-weight: bold;
+            }
+            
+            .amount-text {
+                font-style: italic;
+                text-decoration: underline;
             }
             
             .totals-section {
@@ -395,119 +630,268 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 </div>
                 <div class="company-details">
                     <div class="company-name">${companyData.name || 'Your Company'}</div>
-                    <div class="company-info">
-                        <div>Email: ${companyData.email || 'info@company.com'}</div>
-                        <div>Website: ${companyData.website || 'www.company.com'}</div>
-                        <div>Address: ${companyData.address || '123 Business Street'}</div>
+                <div class="company-info">
+                        <span>${companyData.email || 'info@company.com'}</span>
+                        <span>${companyData.website || 'www.company.com'}</span>
+                </div>
+                    <div class="company-address">
+                        <div>${companyData.address || '123 Business Street'}</div>
+                        <div>${companyData.city || 'City'}</div>
                     </div>
                 </div>
             </div>
             
             <!-- Invoice Title -->
-            <div class="invoice-title">INVOICE</div>
+           
             
-            <!-- Billing Information -->
-            <div class="billing-info">
-                <div class="billing-section">
-                    <h3>Bill To:</h3>
-                    <p><strong>${clientData.companyName}</strong></p>
-                    <p>Attn: ${clientData.contactPerson}</p>
-                    <p>${clientData.email}</p>
-                    ${clientData.phone ? `<p>Phone: ${clientData.phone}</p>` : ''}
-                    ${clientData.address ? `<p>${clientData.address}</p>` : ''}
-                    ${clientData.city || clientData.state || clientData.zipCode ? 
-                      `<p>${[clientData.city, clientData.state, clientData.zipCode].filter(Boolean).join(', ')}</p>` : ''
-                    }
-                    ${clientData.country ? `<p>${clientData.country}</p>` : ''}
-                    ${clientData.taxId ? `<p><strong>Tax ID:</strong> ${clientData.taxId}</p>` : ''}
+            <!-- Invoice Details -->
+            <div class="invoice-details">
+                <div class="invoice-left">
+                    <div class="date-section">
+                        <div class="date-label">Date:</div>
+                        <div class="date-value">${formatDate(invoiceData.createdAt)}</div>
                 </div>
-                <div class="billing-section">
-                    <h3>Project Details:</h3>
-                    ${quotationData ? `
-                        <p><strong>Quotation:</strong> ${quotationData.quotationNumber}</p>
-                        <p><strong>Project:</strong> ${quotationData.title}</p>
-                        ${quotationData.description ? `<p><strong>Description:</strong> ${quotationData.description}</p>` : ''}
-                    ` : ''}
+                </div>
+                <div class="invoice-center">
+                    <div class="to-section">
+                        <div class="to-label">To</div>
+                        <div class="client-name">${clientData.companyName || '-'}</div>
+                        ${clientData.address ? `<div class="client-address">${clientData.address}</div>` : ''}
+                        ${clientData.city ? `<div class="client-city">${clientData.city}</div>` : ''}
+                    </div>
+                </div>
+                <div class="invoice-right">
+                    <div class="invoice-title-section">
+                        <div class="invoice-title-text">INVOICE</div>
+                        <div class="attn-section">
+                            <span class="attn-label">Attn:</span>
+                            <span class="attn-value">${clientData.contactPerson || '-'}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <!-- Invoice Items Table -->
-            <table class="invoice-table">
+            <!-- Scope of Work Table -->
+            <div class="scope-of-work-section">
+                <table class="scope-table" style="width: 100%; border-collapse: collapse; border: none;">
                 <thead>
                     <tr>
-                        <th>Description</th>
-                        <th style="text-align: center;">Qty</th>
-                        <th style="text-align: right;">Unit Price</th>
-                        <th style="text-align: right;">Amount</th>
+                            <th style="background: #dc2626; padding: 8px; text-align: center; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 8%;">Qty.</th>
+                            <th style="background: #dc2626; padding: 8px; text-align: center; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 10%;">Unit</th>
+                        <th style="background: #dc2626; padding: 8px; text-align: left; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 42%;">Description</th>
+                            <th style="background: #dc2626; padding: 8px; text-align: right; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 20%;">Unit Price</th>
+                            <th style="background: #dc2626; padding: 8px; text-align: right; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 20%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>
-                            <strong>${quotationData?.title || 'Professional Services'}</strong>
-                            ${quotationData?.description ? `<br><small style="color: #6b7280;">${quotationData.description}</small>` : ''}
-                        </td>
-                        <td style="text-align: center;">1</td>
-                        <td style="text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
-                        <td style="text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
+                        ${(() => {
+                          // Debug: Log what data we have
+                          console.log('🔍 Invoice PDF Debug - quotationData:', JSON.stringify(quotationData, null, 2));
+                          console.log('🔍 Invoice PDF Debug - quotationData.formData:', JSON.stringify(quotationData?.formData, null, 2));
+                          
+                          // Use same logic as quotation PDF to find scope of work data
+                          let scopeOfWorkFields = [];
+                          let foundLocation = '';
+                          
+                          // 1) Direct key: formData.scopeOfWork (array of items)
+                          if (Array.isArray(quotationData?.formData?.scopeOfWork)) {
+                            scopeOfWorkFields = quotationData.formData.scopeOfWork;
+                            foundLocation = 'formData.scopeOfWork';
+                            console.log('✅ Invoice PDF - Found scope of work in formData.scopeOfWork');
+                          }
+                          
+                          // 2) Arbitrary key that holds { items: [...] }
+                          if (scopeOfWorkFields.length === 0 && quotationData.formData && typeof quotationData.formData === 'object') {
+                            try {
+                              const values = Object.values(quotationData.formData);
+                              const candidate = values.find((v) => v && typeof v === 'object' && Array.isArray(v.items));
+                              if (candidate && Array.isArray(candidate.items)) {
+                                scopeOfWorkFields = candidate.items;
+                                foundLocation = 'arbitrary key in formData';
+                                console.log('✅ Invoice PDF - Found scope of work under arbitrary key in formData');
+                              }
+                            } catch (e) {
+                              console.log('❌ Invoice PDF - Error in arbitrary key search:', e.message);
+                            }
+                          }
+                          
+                          // 3) formData.dynamicFields style [{ type: 'scope-of-work', value: { items: [...] } }]
+                          if (scopeOfWorkFields.length === 0 && Array.isArray(quotationData?.formData?.dynamicFields)) {
+                            const scopeFields = quotationData.formData.dynamicFields.filter((field) => field?.type === 'scope-of-work');
+                            if (scopeFields.length > 0) {
+                              scopeOfWorkFields = scopeFields[0]?.value?.items || [];
+                              foundLocation = 'formData.dynamicFields';
+                              console.log('✅ Invoice PDF - Found scope of work in formData.dynamicFields');
+                            }
+                          }
+                          
+                          // 4) Legacy: quotationData.dynamicFields
+                          if (scopeOfWorkFields.length === 0 && Array.isArray(quotationData?.dynamicFields)) {
+                            const scopeFields = quotationData.dynamicFields.filter((field) => field?.type === 'scope-of-work');
+                            if (scopeFields.length > 0) {
+                              scopeOfWorkFields = scopeFields[0]?.value?.items || [];
+                              foundLocation = 'dynamicFields';
+                              console.log('✅ Invoice PDF - Found scope of work in dynamicFields');
+                            }
+                          }
+                          
+                          console.log(`📍 Invoice PDF - Using scope of work data from: ${foundLocation}`);
+                          console.log('🔍 Invoice PDF - scopeOfWorkFields:', JSON.stringify(scopeOfWorkFields, null, 2));
+                          
+                          if (scopeOfWorkFields && scopeOfWorkFields.length > 0) {
+                            console.log('✅ Invoice PDF - Rendering scope of work items');
+                            return scopeOfWorkFields.map(item => `
+                              <tr>
+                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">${item.srNo || item.qty || 1}</td>
+                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">${item.unit || 'Job'}</td>
+                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: left;">${item.description || '-'}</td>
+                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(item.price || 0)}</td>
+                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(item.total || 0)}</td>
                     </tr>
+                            `).join('');
+                          } else {
+                            console.log('❌ Invoice PDF - No scope of work data found, using fallback');
+                            return `<tr>
+                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">1</td>
+                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">Job</td>
+                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: left;">${quotationData?.title || 'Professional Services'}</td>
+                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
+                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
+                            </tr>`;
+                          }
+                        })()}
                 </tbody>
             </table>
-            
-            <!-- Totals -->
-            <div class="totals-section">
-                <table class="totals-table">
-                    <tr>
-                        <td><strong>Subtotal:</strong></td>
-                        <td style="text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
-                    </tr>
-                    ${invoiceData.gstPercentage > 0 ? `
-                    <tr>
-                        <td><strong>GST (${invoiceData.gstPercentage}%):</strong></td>
-                        <td style="text-align: right;">${formatCurrency(invoiceData.gstAmount)}</td>
-                    </tr>
-                    ` : ''}
-                    ${invoiceData.pstPercentage > 0 ? `
-                    <tr>
-                        <td><strong>PST (${invoiceData.pstPercentage}%):</strong></td>
-                        <td style="text-align: right;">${formatCurrency(invoiceData.pstAmount)}</td>
-                    </tr>
-                    ` : ''}
-                    <tr class="total-row">
-                        <td><strong>Total Amount:</strong></td>
-                        <td style="text-align: right;"><strong>${formatCurrency(invoiceData.totalAmount)}</strong></td>
-                    </tr>
-                </table>
             </div>
-            
-            <!-- Payment Information -->
-            <div class="payment-info">
-                <h3>Payment Information</h3>
-                <div class="payment-terms">
-                    <div>
-                        <strong>Payment Terms:</strong>
-                        Net 30 Days
-                    </div>
-                    <div>
-                        <strong>Payment Method:</strong>
-                        Bank Transfer / Check
+                
+                <!-- Summary Section -->
+                <div class="summary-section" style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                    <div style="width: 300px;">
+                        ${(() => {
+                          // Calculate totals from scope of work data
+                          let scopeOfWorkFields = [];
+                          let subtotal = 0;
+                          
+                          // Use same logic to find scope of work data
+                          if (Array.isArray(quotationData?.formData?.scopeOfWork)) {
+                            scopeOfWorkFields = quotationData.formData.scopeOfWork;
+                          } else if (quotationData.formData && typeof quotationData.formData === 'object') {
+                            try {
+                              const values = Object.values(quotationData.formData);
+                              const candidate = values.find((v) => v && typeof v === 'object' && Array.isArray(v.items));
+                              if (candidate && Array.isArray(candidate.items)) {
+                                scopeOfWorkFields = candidate.items;
+                              }
+                            } catch {}
+                          } else if (Array.isArray(quotationData?.formData?.dynamicFields)) {
+                            const scopeFields = quotationData.formData.dynamicFields.filter((field) => field?.type === 'scope-of-work');
+                            if (scopeFields.length > 0) {
+                              scopeOfWorkFields = scopeFields[0]?.value?.items || [];
+                            }
+                          } else if (Array.isArray(quotationData?.dynamicFields)) {
+                            const scopeFields = quotationData.dynamicFields.filter((field) => field?.type === 'scope-of-work');
+                            if (scopeFields.length > 0) {
+                              scopeOfWorkFields = scopeFields[0]?.value?.items || [];
+                            }
+                          }
+                          
+                          // Calculate subtotal from scope of work items
+                          if (scopeOfWorkFields && scopeOfWorkFields.length > 0) {
+                            subtotal = scopeOfWorkFields.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
+                          } else {
+                            subtotal = parseFloat(invoiceData.subtotal) || 0;
+                          }
+                          
+                          const tax = subtotal * 0.16;
+                          const total = subtotal + tax;
+                          
+                          return `
+                            <div style="display: flex; align-items: stretch;">
+                                <div style="display: flex; flex-direction: column; justify-content: space-around; padding-right: 10px;">
+                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold; visibility: hidden;">Subtotal</div>
+                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">PRA @ 16%:</div>
+                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">Total Due By [Date]:</div>
+                                </div>
+                                <div class="summary-box" style="border: 2px solid #000; background: #fff; flex: 1;">
+                                    <div style="padding: 8px 12px; font-size: 12px; font-weight: bold; text-align: right;">
+                                        ${formatCurrency(subtotal)}
+                                    </div>
+                                    <div style="padding: 8px 12px; font-size: 12px; font-weight: bold; text-align: right;">
+                                        ${formatCurrency(tax)}
+                                    </div>
+                                    <div style="padding: 8px 12px; font-size: 12px; font-weight: bold; text-align: right; background: #fbbf24;">
+                                        ${formatCurrency(total)}
+                                    </div>
+                                </div>
+                            </div>
+                          `;
+                        })()}
                     </div>
                 </div>
+            
+            <!-- Amount in Words -->
+            <div class="amount-words">
+                <strong>Amount in Words:</strong> <span class="amount-text">Rupees: ${(() => {
+                  // Calculate total from scope of work data
+                  let scopeOfWorkFields = [];
+                  let subtotal = 0;
+                  
+                  if (Array.isArray(quotationData?.formData?.scopeOfWork)) {
+                    scopeOfWorkFields = quotationData.formData.scopeOfWork;
+                  } else if (quotationData.formData && typeof quotationData.formData === 'object') {
+                    try {
+                      const values = Object.values(quotationData.formData);
+                      const candidate = values.find((v) => v && typeof v === 'object' && Array.isArray(v.items));
+                      if (candidate && Array.isArray(candidate.items)) {
+                        scopeOfWorkFields = candidate.items;
+                      }
+                    } catch {}
+                  } else if (Array.isArray(quotationData?.formData?.dynamicFields)) {
+                    const scopeFields = quotationData.formData.dynamicFields.filter((field) => field?.type === 'scope-of-work');
+                    if (scopeFields.length > 0) {
+                      scopeOfWorkFields = scopeFields[0]?.value?.items || [];
+                    }
+                  } else if (Array.isArray(quotationData?.dynamicFields)) {
+                    const scopeFields = quotationData.dynamicFields.filter((field) => field?.type === 'scope-of-work');
+                    if (scopeFields.length > 0) {
+                      scopeOfWorkFields = scopeFields[0]?.value?.items || [];
+                    }
+                  }
+                  
+                  if (scopeOfWorkFields && scopeOfWorkFields.length > 0) {
+                    subtotal = scopeOfWorkFields.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
+                  } else {
+                    subtotal = parseFloat(invoiceData.subtotal) || 0;
+                  }
+                  
+                  const total = subtotal * 1.16;
+                  return convertNumberToWords(total);
+                })()} Only</span>
             </div>
             
-            ${quotationData?.notes ? `
-                <div class="notes">
-                    <h4>Additional Notes:</h4>
-                    <p>${quotationData.notes}</p>
-                </div>
-            ` : ''}
-            
-            <!-- Footer -->
-            <div class="footer">
-                <p>Thank you for your business!</p>
-                <p>This is an electronically generated invoice.</p>
-                <p>Generated on ${formatDate(new Date())}</p>
+            <!-- Remarks -->
+            <div style="margin-top: 20px; font-size: 12px; font-weight: bold;">
+                Remarks:
             </div>
+            
+            <!-- Thank You Message -->
+            <div style="margin-top: 20px; text-align: center; font-size: 12px;">
+                Thanks for your business with Spectrum Telecom (Pvt.) Ltd
+            </div>
+            
+            <!-- Company Name -->
+            <div style="margin-top: 20px; font-size: 12px; font-weight: bold;">
+                ${companyData.name || 'Spectrum Telecom (Pvt.) Ltd'}
+            </div>
+            
+           
+            
+            
+           
+            
+           
+            
+           
         </div>
     </body>
     </html>
@@ -686,10 +1070,10 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
   // Helper function to get logo URL (absolute URL or inline data URI)
   const getLogoUrl = () => {
     try {
-      if (!companyData.logo) {
-        return null;
-      }
-
+    if (!companyData.logo) {
+      return null;
+    }
+    
       // If already an absolute URL, return as-is
       if (/^https?:\/\//i.test(companyData.logo)) {
         return companyData.logo;
@@ -717,12 +1101,12 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
           const baseUrl = process.env.SERVER_PUBLIC_URL
             || process.env.PUBLIC_BASE_URL
             || (process.env.NODE_ENV === 'development'
-                  ? 'http://localhost:5000'
+      ? 'http://localhost:5000' 
                   : (process.env.VPS_IP ? `http://${process.env.VPS_IP}:5000` : 'http://127.0.0.1:5000'));
-
+    
           const httpPath = companyData.logo.startsWith('/')
-            ? companyData.logo
-            : `/uploads/${companyData.logo}`;
+      ? companyData.logo 
+      : `/uploads/${companyData.logo}`;
           return `${baseUrl}${httpPath}`;
         });
     } catch (_) {
@@ -1059,13 +1443,13 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                         <span style="color:#ef4444;">Quality</span>
                     </div>
                 </div>
-               <div class="company-details">
-                <div class="company-name">${companyData.name || 'Your Company'}</div>
-                <div class="company-info">
+                <div class="company-details">
+                    <div class="company-name">${companyData.name || 'Your Company'}</div>
+                    <div class="company-info">
                     <span>${companyData.email || 'info@company.com'}</span>
                     <span>${companyData.website || 'www.company.com'}</span>
+                    </div>
                 </div>
-            </div>
 
 
             </div>
@@ -1081,15 +1465,15 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                         <div class="detail-row">
                             <div class="detail-label">Customer:</div>
                             <div class="detail-value">${clientData.companyName || '-'}</div>
-                        </div>
+                </div>
                         <div class="detail-row">
                             <div class="detail-label">Address:</div>
                             <div class="detail-value">${clientData.address || '-'}</div>
-                        </div>
+                </div>
                         <div class="detail-row">
                             <div class="detail-label">City:</div>
                             <div class="detail-value">${clientData.city || '-'}</div>
-                        </div>
+            </div>
                         <div class="detail-row">
                             <div class="detail-label">Project:</div>
                             <div class="detail-value">${quotationData.title || '-'}</div>

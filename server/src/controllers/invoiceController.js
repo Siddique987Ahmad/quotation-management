@@ -2301,7 +2301,8 @@ const generateInvoicePDFController = asyncHandler(async (req, res) => {
           quotationNumber: true,
           title: true,
           description: true,
-          notes: true
+          notes: true,
+          formData: true
         }
       }
     }
