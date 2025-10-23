@@ -24,79 +24,82 @@ const getBrowser = async (retryCount = 0) => {
   try {
     if (!browser || !browser.isConnected()) {
       console.log(`🔄 Launching browser (attempt ${retryCount + 1})...`);
-      // browser = await puppeteer.launch({
-      //   headless: 'new',
-      //   args: [
-      //     '--no-sandbox',
-      //     '--disable-setuid-sandbox',
-      //     '--disable-dev-shm-usage',
-      //     '--disable-accelerated-2d-canvas',
-      //     '--no-first-run',
-      //     '--no-zygote',
-      //     '--single-process',
-      //     '--disable-gpu',
-      //     '--disable-web-security',
-      //     '--disable-features=VizDisplayCompositor',
-      //     '--memory-pressure-off',
-      //     '--max_old_space_size=4096',
-      //     '--disable-background-timer-throttling',
-      //     '--disable-backgrounding-occluded-windows',
-      //     '--disable-renderer-backgrounding',
-      //     '--disable-extensions',
-      //     '--disable-plugins',
-      //     '--disable-default-apps',
-      //     '--disable-sync',
-      //     '--disable-translate',
-      //     '--hide-scrollbars',
-      //     '--mute-audio',
-      //     '--no-default-browser-check',
-      //     '--no-pings',
-      //     '--password-store=basic',
-      //     '--use-mock-keychain',
-      //     '--disable-component-extensions-with-background-pages',
-      //     '--disable-background-networking',
-      //     '--disable-default-apps',
-      //     '--disable-sync',
-      //     '--metrics-recording-only',
-      //     '--no-report-upload',
-      //     '--disable-background-timer-throttling',
-      //     '--disable-backgrounding-occluded-windows',
-      //     '--disable-renderer-backgrounding',
-      //     '--disable-features=TranslateUI',
-      //     '--disable-ipc-flooding-protection'
-      //   ],
-      //   timeout: 60000,
-      //   protocolTimeout: 60000
-      // });
+      // Create a custom temp directory for Puppeteer
+      const os = require('os');
+      const path = require('path');
+      const fs = require('fs');
+      
+      const customTempDir = path.join(os.tmpdir(), 'puppeteer-custom');
+      if (!fs.existsSync(customTempDir)) {
+        fs.mkdirSync(customTempDir, { recursive: true });
+      }
+      
       browser = await puppeteer.launch({
-        headless: "new",
+        headless: true,
+        userDataDir: customTempDir,
         args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-          "--disable-extensions",
-          "--disable-default-apps",
-          "--disable-sync",
-          "--hide-scrollbars",
-          "--mute-audio",
-          "--disable-background-networking",
-          "--metrics-recording-only",
-          "--no-report-upload",
-          "--disable-component-extensions-with-background-pages",
-          "--password-store=basic",
-          "--use-mock-keychain"
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--memory-pressure-off',
+          '--max_old_space_size=2048',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-default-apps',
+          '--disable-sync',
+          '--disable-translate',
+          '--hide-scrollbars',
+          '--mute-audio',
+          '--no-default-browser-check',
+          '--no-pings',
+          '--password-store=basic',
+          '--use-mock-keychain',
+          '--disable-component-extensions-with-background-pages',
+          '--disable-background-networking',
+          '--metrics-recording-only',
+          '--no-report-upload',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection',
+          '--disable-logging',
+          '--disable-gpu-logging',
+          '--disable-software-rasterizer',
+          '--disable-background-mode',
+          '--disable-client-side-phishing-detection',
+          '--disable-default-apps',
+          '--disable-hang-monitor',
+          '--disable-prompt-on-repost',
+          '--disable-sync-preferences',
+          '--disable-web-resources',
+          '--enable-aggressive-domstorage-flushing',
+          '--enable-simple-cache-backend',
+          '--force-device-scale-factor=1',
+          '--high-dpi-support=1',
+          '--ignore-certificate-errors',
+          '--ignore-certificate-errors-spki-list',
+          '--ignore-ssl-errors',
+          '--ignore-certificate-errors',
+          '--no-first-run',
+          '--no-service-autorun',
+          '--password-store=basic',
+          '--use-mock-keychain',
+          '--disable-blink-features=AutomationControlled'
         ],
-        timeout: 60000,
-        protocolTimeout: 60000
+        timeout: 30000,
+        protocolTimeout: 30000,
+        handleSIGINT: false,
+        handleSIGTERM: false,
+        handleSIGHUP: false
       });
-      
-      
       console.log('✅ Browser launched successfully');
     }
     return browser;
@@ -139,6 +142,54 @@ const checkSystemResources = () => {
     heapUsed: `${Math.round(used.heapUsed / 1024 / 1024)} MB`,
     external: `${Math.round(used.external / 1024 / 1024)} MB`
   });
+};
+
+// Clean up temporary files
+const cleanupTempFiles = async () => {
+  try {
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+    
+    const tempDir = os.tmpdir();
+    const puppeteerDir = path.join(tempDir, 'puppeteer-custom');
+    
+    if (fs.existsSync(puppeteerDir)) {
+      console.log('🧹 Cleaning up Puppeteer temp files...');
+      const files = fs.readdirSync(puppeteerDir);
+      for (const file of files) {
+        try {
+          const filePath = path.join(puppeteerDir, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isDirectory()) {
+            fs.rmSync(filePath, { recursive: true, force: true });
+          } else {
+            fs.unlinkSync(filePath);
+          }
+        } catch (error) {
+          console.log(`Could not clean ${file}:`, error.message);
+        }
+      }
+    }
+    
+    // Also clean system temp files
+    const systemTempFiles = fs.readdirSync(tempDir).filter(file => 
+      file.startsWith('puppeteer') || file.startsWith('.org.chromium')
+    );
+    
+    for (const file of systemTempFiles) {
+      try {
+        const filePath = path.join(tempDir, file);
+        fs.rmSync(filePath, { recursive: true, force: true });
+      } catch (error) {
+        console.log(`Could not clean system temp ${file}:`, error.message);
+      }
+    }
+    
+    console.log('✅ Temp files cleaned up');
+  } catch (error) {
+    console.log('⚠️ Temp cleanup error:', error.message);
+  }
 };
 
 
@@ -1720,165 +1771,42 @@ ${termsHTML}
 };
 
 // Generate PDF from HTML with retry logic and fallback
-// const generatePDF = async (html, options = {}, retryCount = 0) => {
-//   let browser;
-//   let page;
-  
-//   try {
-//     console.log(`🔄 Starting PDF generation (attempt ${retryCount + 1})...`);
-//     checkSystemResources();
-    
-//     browser = await getBrowser();
-//     page = await browser.newPage();
-
-//     // Set page timeout
-//     page.setDefaultTimeout(30000);
-//     page.setDefaultNavigationTimeout(30000);
-
-//     console.log('📄 Setting page content...');
-//     // await page.setContent(html, { 
-//     //   waitUntil: 'networkidle0',
-//     //   timeout: 30000 
-//     // });
-//     // Ensure main frame is ready
-//     await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
-//     await new Promise(r => setTimeout(r, 300));
-    
-//     await page.setContent(html, {
-//       waitUntil: 'networkidle0',
-//       timeout: 30000
-//     });
-
-// // Extra stability for slow servers
-// await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
-
-
-//     console.log('📄 Generating PDF...');
-//     const pdfOptions = {
-//       format: 'A4',
-//       printBackground: true,
-//       margin: {
-//         top: '10mm',
-//         right: '10mm',
-//         bottom: '10mm',
-//         left: '10mm'
-//       },
-//       preferCSSPageSize: false,
-//       timeout: 30000,
-//       ...options
-//     };
-
-//     const pdf = await page.pdf(pdfOptions);
-//     console.log('✅ PDF generated successfully');
-//     return pdf;
-//   } catch (error) {
-//     console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
-//     console.error('Error details:', error);
-    
-//     // If it's a connection error and we haven't retried too many times
-//     if ((error.message.includes('Connection closed') || 
-//          error.message.includes('Protocol error') ||
-//          error.message.includes('ConnectionClosedError') ||
-//          error.message.includes('Target closed')) && retryCount < 3) {
-//       console.log('🔄 Retrying PDF generation with fresh browser...');
-      
-//       // Close current browser and create a new one
-//       if (browser && browser.isConnected()) {
-//         try {
-//           await browser.close();
-//         } catch (closeError) {
-//           console.log('Browser close error (expected):', closeError.message);
-//         }
-//       }
-//       browser = null;
-      
-//       // Wait longer before retrying
-//       const waitTime = (retryCount + 1) * 3000; // 3s, 6s, 9s
-//       console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-//       await new Promise(resolve => setTimeout(resolve, waitTime));
-      
-//       return generatePDF(html, options, retryCount + 1);
-//     }
-    
-//     // If all retries failed, try one more time with a completely fresh browser
-//     if (retryCount === 0) {
-//       console.log('🔄 Final attempt with completely fresh browser...');
-//       browser = null;
-//       await new Promise(resolve => setTimeout(resolve, 5000));
-//       return generatePDF(html, options, 1);
-//     }
-    
-//     // If still failing, try with minimal options
-//     if (retryCount === 1) {
-//       console.log('🔄 Trying with minimal PDF options...');
-//       const minimalOptions = {
-//         format: 'A4',
-//         printBackground: true,
-//         margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
-//         timeout: 15000
-//       };
-//       return generatePDF(html, minimalOptions, 2);
-//     }
-    
-//     throw new Error(`PDF generation failed after ${retryCount + 1} attempts: ${error.message}`);
-//   } finally {
-//     if (page) {
-//       try {
-//         await page.close();
-//       } catch (closeError) {
-//         console.log('Page close error (expected):', closeError.message);
-//       }
-//     }
-//   }
-// };
-
 const generatePDF = async (html, options = {}, retryCount = 0) => {
   let browser;
   let page;
-
+  
   try {
     console.log(`🔄 Starting PDF generation (attempt ${retryCount + 1})...`);
     checkSystemResources();
-
+    
+    // Clean up temp files before starting
+    if (retryCount === 0) {
+      await cleanupTempFiles();
+    }
+    
     browser = await getBrowser();
     page = await browser.newPage();
 
+    // Set page timeout
     page.setDefaultTimeout(30000);
     page.setDefaultNavigationTimeout(30000);
 
-    console.log('📄 Preparing page...');
-
-    await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
-    await new Promise(r => setTimeout(r, 300));
-
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      const blocked = ['image', 'stylesheet', 'font'];
-      if (blocked.includes(req.resourceType())) req.abort();
-      else req.continue();
+    console.log('📄 Setting page content...');
+    await page.setContent(html, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000 
     });
-
-    await page.setContent(html, {
-      waitUntil: 'networkidle2',
-      timeout: 30000
-    });
-
-    await page.evaluate(() => {
-      document.querySelectorAll('script').forEach(s => s.remove());
-    });
-
-    await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
-
-    if (!page.mainFrame()) {
-      throw new Error("Main frame not ready after content load");
-    }
 
     console.log('📄 Generating PDF...');
-
     const pdfOptions = {
       format: 'A4',
       printBackground: true,
-      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
+      margin: {
+        top: '10mm',
+        right: '10mm',
+        bottom: '10mm',
+        left: '10mm'
+      },
       preferCSSPageSize: false,
       timeout: 30000,
       ...options
@@ -1887,51 +1815,71 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     const pdf = await page.pdf(pdfOptions);
     console.log('✅ PDF generated successfully');
     return pdf;
-
   } catch (error) {
     console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
-
-    const isConnectionError =
-      error.message.includes('Connection closed') ||
-      error.message.includes('Protocol error') ||
-      error.message.includes('Target closed') ||
-      error.message.includes('ConnectionFailed') ||
-      error.message.includes('main frame');
-
-    if (isConnectionError && retryCount < 2) {
-      console.log('🔄 Retrying with same browser...');
-      await new Promise(r => setTimeout(r, 2000));
-      return generatePDF(html, options, retryCount + 1);
-    }
-
-    if (retryCount === 2) {
-      console.log('♻️ Restarting browser for final attempts...');
+    console.error('Error details:', error);
+    
+    // If it's a connection error and we haven't retried too many times
+    if ((error.message.includes('Connection closed') || 
+         error.message.includes('Protocol error') ||
+         error.message.includes('ConnectionClosedError') ||
+         error.message.includes('Target closed') ||
+         error.message.includes('ENOSPC') ||
+         error.message.includes('socket hang up')) && retryCount < 3) {
+      console.log('🔄 Retrying PDF generation with fresh browser...');
+      
+      // Clean up temp files on retry
+      await cleanupTempFiles();
+      
+      // Close current browser and create a new one
       if (browser && browser.isConnected()) {
-        try { await browser.close(); } catch (_) {}
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.log('Browser close error (expected):', closeError.message);
+        }
       }
-      global.browserInstance = null;
-      await new Promise(r => setTimeout(r, 3000));
+      browser = null;
+      
+      // Wait longer before retrying
+      const waitTime = (retryCount + 1) * 3000; // 3s, 6s, 9s
+      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      
       return generatePDF(html, options, retryCount + 1);
     }
-
-    if (retryCount === 3) {
-      console.log('🔄 Trying minimal PDF options...');
+    
+    // If all retries failed, try one more time with a completely fresh browser
+    if (retryCount === 0) {
+      console.log('🔄 Final attempt with completely fresh browser...');
+      browser = null;
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return generatePDF(html, options, 1);
+    }
+    
+    // If still failing, try with minimal options
+    if (retryCount === 1) {
+      console.log('🔄 Trying with minimal PDF options...');
       const minimalOptions = {
         format: 'A4',
         printBackground: true,
-        margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' }
+        margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
+        timeout: 15000
       };
-      return generatePDF(html, minimalOptions, retryCount + 1);
+      return generatePDF(html, minimalOptions, 2);
     }
-
-    throw new Error(`PDF generation failed after 4 attempts: ${error.message}`);
+    
+    throw new Error(`PDF generation failed after ${retryCount + 1} attempts: ${error.message}`);
   } finally {
     if (page) {
-      try { await page.close(); } catch (_) {}
+      try {
+        await page.close();
+      } catch (closeError) {
+        console.log('Page close error (expected):', closeError.message);
+      }
     }
   }
 };
-
 
 // Generate invoice PDF with settings
 const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxType = 'GST_AND_PST') => {
@@ -2192,5 +2140,6 @@ module.exports = {
   closeBrowser,
   resetBrowser,
   checkSystemResources,
+  cleanupTempFiles,
   cleanup
 };
