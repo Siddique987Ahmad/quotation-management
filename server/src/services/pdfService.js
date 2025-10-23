@@ -1843,20 +1843,28 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     browser = await getBrowser();
     page = await browser.newPage();
 
-    // Page timeouts
     page.setDefaultTimeout(30000);
     page.setDefaultNavigationTimeout(30000);
 
     console.log('📄 Preparing page...');
 
-    // Ensure main frame exists BEFORE loading content
     await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
     await new Promise(r => setTimeout(r, 300));
 
-    // Load HTML safely
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const blocked = ['image', 'stylesheet', 'font'];
+      if (blocked.includes(req.resourceType())) req.abort();
+      else req.continue();
+    });
+
     await page.setContent(html, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'networkidle2',
       timeout: 30000
+    });
+
+    await page.evaluate(() => {
+      document.querySelectorAll('script').forEach(s => s.remove());
     });
 
     await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
@@ -1879,6 +1887,7 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     const pdf = await page.pdf(pdfOptions);
     console.log('✅ PDF generated successfully');
     return pdf;
+
   } catch (error) {
     console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
 
@@ -1889,14 +1898,12 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
       error.message.includes('ConnectionFailed') ||
       error.message.includes('main frame');
 
-    // 🔁 Retry up to 3 times WITHOUT restarting browser
     if (isConnectionError && retryCount < 2) {
       console.log('🔄 Retrying with same browser...');
       await new Promise(r => setTimeout(r, 2000));
       return generatePDF(html, options, retryCount + 1);
     }
 
-    // 🧹 On 4th failure, restart browser (final fallback)
     if (retryCount === 2) {
       console.log('♻️ Restarting browser for final attempts...');
       if (browser && browser.isConnected()) {
@@ -1907,7 +1914,6 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
       return generatePDF(html, options, retryCount + 1);
     }
 
-    // 🏁 Last fallback with minimal settings
     if (retryCount === 3) {
       console.log('🔄 Trying minimal PDF options...');
       const minimalOptions = {
