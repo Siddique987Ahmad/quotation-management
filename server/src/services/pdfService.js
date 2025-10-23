@@ -19,32 +19,60 @@ const getSignatureBase64 = async () => {
 // Initialize browser instance
 let browser;
 
-// Get or create browser instance
-const getBrowser = async () => {
-  if (!browser || !browser.isConnected()) {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ]
-    });
+// Get or create browser instance with retry logic
+const getBrowser = async (retryCount = 0) => {
+  try {
+    if (!browser || !browser.isConnected()) {
+      console.log(`🔄 Launching browser (attempt ${retryCount + 1})...`);
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor',
+          '--memory-pressure-off',
+          '--max_old_space_size=4096'
+        ],
+        timeout: 30000
+      });
+      console.log('✅ Browser launched successfully');
+    }
+    return browser;
+  } catch (error) {
+    console.error(`❌ Browser launch failed (attempt ${retryCount + 1}):`, error.message);
+    if (retryCount < 2) {
+      console.log('🔄 Retrying browser launch...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return getBrowser(retryCount + 1);
+    }
+    throw error;
   }
-  return browser;
 };
 
 // Close browser
 const closeBrowser = async () => {
   if (browser && browser.isConnected()) {
-    await browser.close();
+    try {
+      await browser.close();
+    } catch (error) {
+      console.log('Browser close error (expected):', error.message);
+    }
     browser = null;
   }
+};
+
+// Reset browser connection (force new browser instance)
+const resetBrowser = async () => {
+  console.log('🔄 Resetting browser connection...');
+  await closeBrowser();
+  browser = null;
 };
 
 
@@ -1625,13 +1653,23 @@ ${termsHTML}
   `;
 };
 
-// Generate PDF from HTML
-const generatePDF = async (html, options = {}) => {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
-
+// Generate PDF from HTML with retry logic
+const generatePDF = async (html, options = {}, retryCount = 0) => {
+  let browser;
+  let page;
+  
   try {
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    browser = await getBrowser();
+    page = await browser.newPage();
+
+    // Set page timeout
+    page.setDefaultTimeout(30000);
+    page.setDefaultNavigationTimeout(30000);
+
+    await page.setContent(html, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000 
+    });
 
     const pdfOptions = {
       format: 'A4',
@@ -1643,13 +1681,44 @@ const generatePDF = async (html, options = {}) => {
         left: '10mm'
       },
       preferCSSPageSize: false,
+      timeout: 30000,
       ...options
     };
 
     const pdf = await page.pdf(pdfOptions);
     return pdf;
+  } catch (error) {
+    console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
+    
+    // If it's a connection error and we haven't retried too many times
+    if ((error.message.includes('Connection closed') || error.message.includes('Protocol error')) && retryCount < 2) {
+      console.log('🔄 Retrying PDF generation with fresh browser...');
+      
+      // Close current browser and create a new one
+      if (browser && browser.isConnected()) {
+        try {
+          await browser.close();
+        } catch (closeError) {
+          console.log('Browser close error (expected):', closeError.message);
+        }
+      }
+      browser = null;
+      
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      return generatePDF(html, options, retryCount + 1);
+    }
+    
+    throw new Error(`PDF generation failed: ${error.message}`);
   } finally {
-    await page.close();
+    if (page) {
+      try {
+        await page.close();
+      } catch (closeError) {
+        console.log('Page close error (expected):', closeError.message);
+      }
+    }
   }
 };
 
@@ -1706,9 +1775,9 @@ const generateAllInvoiceTaxVersions = async (invoiceData, clientData, quotationD
 };
 
 // Generate quotation PDF with settings
-const generateQuotationPDF = async (quotationData, clientData, userData) => {
+const generateQuotationPDF = async (quotationData, clientData, userData, companyData) => {
   try {
-    const html = await generateQuotationHTML(quotationData, clientData, userData);
+    const html = await generateQuotationHTML(quotationData, clientData, userData, companyData);
     const pdf = await generatePDF(html, {
       displayHeaderFooter: true,
       headerTemplate: '<div></div>',
@@ -1910,5 +1979,6 @@ module.exports = {
   testPDFGeneration,
   savePDFToFile,
   closeBrowser,
+  resetBrowser,
   cleanup
 };
