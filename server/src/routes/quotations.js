@@ -182,7 +182,21 @@ router.get('/:id/pdf', [
       include: {
         client: {
           include: {
-            department: true
+            departments: {
+              include: {
+                department: {
+                  select: {
+                    id: true,
+                    name: true,
+                    contactPerson: true,
+                    email: true,
+                    phone: true,
+                    address: true,
+                    city: true
+                  }
+                }
+              }
+            }
           }
         },
         user: {
@@ -391,7 +405,21 @@ router.post('/:id/send-email', [
       include: {
         client: {
           include: {
-            department: true
+            departments: {
+              include: {
+                department: {
+                  select: {
+                    id: true,
+                    name: true,
+                    contactPerson: true,
+                    email: true,
+                    phone: true,
+                    address: true,
+                    city: true
+                  }
+                }
+              }
+            }
           }
         },
         user: {
@@ -443,20 +471,19 @@ router.post('/:id/send-email', [
 
     console.log('✅ PDF generated successfully');
 
-    // Get target clients based on department selection
-    let targetClients = [];
+    // Get target departments based on department selection
+    let targetDepartments = [];
     
     if (departmentId) {
       // Send to specific department
       console.log(`📧 Sending to department: ${departmentId}`);
       const department = await prisma.department.findUnique({
         where: { id: departmentId },
-        include: {
-          clients: {
-        where: {
-              isActive: true
-            }
-          }
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          contactPerson: true
         }
       });
       
@@ -467,30 +494,37 @@ router.post('/:id/send-email', [
         });
       }
       
-      targetClients = department.clients.filter(client => client.email && client.email.trim() !== '');
-      console.log(`📧 Found ${targetClients.length} clients in department: ${department.name}`);
+      if (department.email && department.email.trim() !== '') {
+        targetDepartments = [department];
+        console.log(`📧 Found department: ${department.name} (${department.email})`);
       } else {
-      // Send to all departments
-      console.log('📧 Sending to all departments');
-      const allClients = await prisma.client.findMany({
-        where: {
-          isActive: true
-        }
-      });
-      targetClients = allClients.filter(client => client.email && client.email.trim() !== '');
-      console.log(`📧 Found ${targetClients.length} total clients`);
+        return res.status(400).json({
+          success: false,
+          message: 'Department has no email address configured'
+        });
+      }
+    } else {
+      // Send to all departments that the client belongs to
+      console.log('📧 Sending to all client departments');
+      const clientDepartments = quotation.client.departments || [];
+      
+      targetDepartments = clientDepartments
+        .map(cd => cd.department)
+        .filter(dept => dept.email && dept.email.trim() !== '');
+      
+      console.log(`📧 Found ${targetDepartments.length} departments for client`);
     }
 
-    if (targetClients.length === 0) {
+    if (targetDepartments.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No clients found to send email to'
+        message: 'No departments with email addresses found to send email to'
       });
     }
 
-    // Send emails to all target clients using the email service
-    console.log(`📧 Sending emails to ${targetClients.length} clients...`);
-    const emailResults = await sendQuotationEmailToDepartment(quotation, targetClients, pdfResult.pdf);
+    // Send emails to all target departments using the email service
+    console.log(`📧 Sending emails to ${targetDepartments.length} departments...`);
+    const emailResults = await sendQuotationEmailToDepartment(quotation, targetDepartments, pdfResult.pdf);
 
     // Update quotation status
     console.log('💾 Updating quotation status...');

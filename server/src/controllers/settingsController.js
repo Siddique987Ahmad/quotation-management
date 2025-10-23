@@ -34,7 +34,8 @@ const updateCompanySettings = async (req, res, next) => {
     console.log('📁 Uploaded file:', req.file);
     
     const {
-      name, address, city, state, zipCode, country, phone, email, website, taxId
+      name, address, city, state, zipCode, country, phone, email, website, taxId,
+      recipientName, recipientRole, recipientEmail, ntn, gst
     } = req.body;
 
     if (!name) {
@@ -73,7 +74,13 @@ const updateCompanySettings = async (req, res, next) => {
       email: email || '',
       website: website || '',
       taxId: taxId || '',
-      logo: logoPath
+      logo: logoPath,
+      // Recipient Information for PDFs
+      recipientName: recipientName || '',
+      recipientRole: recipientRole || '',
+      recipientEmail: recipientEmail || '',
+      ntn: ntn || '',
+      gst: gst || ''
     };
 
     // Update database with the exact filename that was uploaded

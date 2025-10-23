@@ -11,11 +11,13 @@ interface Department {
   address?: string;
   city?: string;
   clients: Array<{
-    id: string;
-    companyName: string;
-    contactPerson: string;
-    email: string;
-    isActive: boolean;
+    client: {
+      id: string;
+      companyName: string;
+      contactPerson: string;
+      email: string;
+      isActive: boolean;
+    };
   }>;
 }
 
@@ -46,6 +48,7 @@ const DepartmentsSettings: React.FC = () => {
     city: '',
     clientId: ''
   });
+  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     loadData();
@@ -70,9 +73,37 @@ const DepartmentsSettings: React.FC = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    // Name is required
+    if (!formData.name.trim()) {
+      errors.name = 'Department name is required';
+    }
+    
+    // Email is required
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    
+    // Client is required
+    if (!formData.clientId) {
+      errors.clientId = 'Please select a client';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       if (editingDepartment) {
@@ -97,7 +128,7 @@ const DepartmentsSettings: React.FC = () => {
       phone: department.phone || '',
       address: department.address || '',
       city: department.city || '',
-      clientId: department.clients.length > 0 ? department.clients[0].id : ''
+      clientId: department.clients.length > 0 ? department.clients[0].client.id : ''
     });
     setShowForm(true);
   };
@@ -123,6 +154,7 @@ const DepartmentsSettings: React.FC = () => {
       city: '',
       clientId: ''
     });
+    setFormErrors({});
     setEditingDepartment(null);
     setShowForm(false);
   };
@@ -198,11 +230,23 @@ const DepartmentsSettings: React.FC = () => {
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, name: e.target.value }));
+                  if (formErrors.name) {
+                    setFormErrors(prev => ({ ...prev, name: '' }));
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  formErrors.name 
+                    ? 'border-red-300 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
                 placeholder="Enter department name"
                 required
               />
+              {formErrors.name && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+              )}
             </div>
 
             {/* Contact Person */}
@@ -222,15 +266,28 @@ const DepartmentsSettings: React.FC = () => {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                Email *
               </label>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, email: e.target.value }));
+                  if (formErrors.email) {
+                    setFormErrors(prev => ({ ...prev, email: '' }));
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  formErrors.email 
+                    ? 'border-red-300 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
                 placeholder="Enter email address"
+                required
               />
+              {formErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+              )}
             </div>
 
             {/* Phone */}
@@ -278,12 +335,22 @@ const DepartmentsSettings: React.FC = () => {
             {/* Client Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assign Client
+                Assign Client *
               </label>
               <select
                 value={formData.clientId}
-                onChange={(e) => setFormData(prev => ({ ...prev, clientId: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, clientId: e.target.value }));
+                  if (formErrors.clientId) {
+                    setFormErrors(prev => ({ ...prev, clientId: '' }));
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  formErrors.clientId 
+                    ? 'border-red-300 focus:ring-red-500' 
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+                required
               >
                 <option value="">Select a client</option>
                 {clients.map(client => (
@@ -292,6 +359,9 @@ const DepartmentsSettings: React.FC = () => {
                   </option>
                 ))}
               </select>
+              {formErrors.clientId && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.clientId}</p>
+              )}
             </div>
 
             {/* Form Actions */}
@@ -354,23 +424,23 @@ const DepartmentsSettings: React.FC = () => {
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-gray-700">Assigned Clients:</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {department.clients.map(client => (
+                    {department.clients.map(clientDept => (
                       <div
-                        key={client.id}
+                        key={clientDept.client.id}
                         className="flex items-center p-3 bg-gray-50 rounded-md"
                       >
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{client.companyName}</div>
+                          <div className="font-medium text-gray-900">{clientDept.client.companyName}</div>
                           <div className="text-sm text-gray-600">
-                            {client.contactPerson} • {client.email}
+                            {clientDept.client.contactPerson} • {clientDept.client.email}
                           </div>
                         </div>
                         <div className={`px-2 py-1 rounded-full text-xs ${
-                          client.isActive 
+                          clientDept.client.isActive 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {client.isActive ? 'Active' : 'Inactive'}
+                          {clientDept.client.isActive ? 'Active' : 'Inactive'}
                         </div>
                       </div>
                     ))}

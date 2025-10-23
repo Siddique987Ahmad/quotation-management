@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Quotation, QuotationStatus } from '../../../types';
 import { hasPermission, getUserDisplayName } from '../../../utils/auth';
 import { CardSpinner, ButtonSpinner } from '../../../components/LoadingSpinner';
 import { Icons } from '../../../components/Icons/Icons';
 import { useCurrency } from '../../../contexts/CurrencyContext';
-import { departmentsAPI } from '../../../services/api';
 
 interface QuotationDetailsViewProps {
   quotation: Quotation | null;
@@ -173,25 +172,10 @@ const DepartmentEmailDropdown: React.FC<DepartmentEmailDropdownProps> = ({
   onSendEmail,
   loading
 }) => {
-  const [departments, setDepartments] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
-  useEffect(() => {
-    loadDepartments();
-  }, []);
-
-  const loadDepartments = async () => {
-    try {
-      setDepartmentsLoading(true);
-      const response = await departmentsAPI.list();
-      setDepartments(response.data.data || []);
-    } catch (error) {
-      console.error('Failed to load departments:', error);
-    } finally {
-      setDepartmentsLoading(false);
-    }
-  };
+  // Get departments from the client's departments (many-to-many relationship)
+  const clientDepartments = quotation.client?.departments || [];
 
   const handleSendToDepartment = (departmentId?: string) => {
     setIsOpen(false);
@@ -202,11 +186,16 @@ const DepartmentEmailDropdown: React.FC<DepartmentEmailDropdownProps> = ({
     return null;
   }
 
+  // Don't show dropdown if client has no departments
+  if (clientDepartments.length === 0) {
+    return null;
+  }
+
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        disabled={loading || departmentsLoading}
+        disabled={loading}
         className="inline-flex items-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
       >
         <Icons.Mail />
@@ -221,33 +210,27 @@ const DepartmentEmailDropdown: React.FC<DepartmentEmailDropdownProps> = ({
               Send to Department
             </div>
             
-            {departmentsLoading ? (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                Loading departments...
+            {clientDepartments.map((clientDept) => (
+              <button
+                key={clientDept.department.id}
+                onClick={() => handleSendToDepartment(clientDept.department.id)}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+              >
+                <Icons.Settings />
+                {clientDept.department.name}
+              </button>
+            ))}
+            
+            {clientDepartments.length > 1 && (
+              <div className="border-t border-gray-100">
+                <button
+                  onClick={() => handleSendToDepartment()}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center font-medium"
+                >
+                  <Icons.Mail />
+                  Send to All Departments
+                </button>
               </div>
-            ) : (
-              <>
-                {departments.map((department) => (
-                  <button
-                    key={department.id}
-                    onClick={() => handleSendToDepartment(department.id)}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                  >
-                    <Icons.Settings />
-                    {department.name}
-                  </button>
-                ))}
-                
-                <div className="border-t border-gray-100">
-                  <button
-                    onClick={() => handleSendToDepartment()}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center font-medium"
-                  >
-                    <Icons.Mail />
-                    Send All
-                  </button>
-                </div>
-              </>
             )}
           </div>
         </div>
@@ -529,6 +512,73 @@ const QuotationDetailsView: React.FC<QuotationDetailsViewProps> = ({
             </div>
           </div>
         </div>
+
+    {/* Department Summary */}
+    {quotation.client?.departments && quotation.client.departments.length > 0 && (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-lg font-medium text-blue-900 mb-3 flex items-center">
+          <div className="w-5 h-5 mr-2">
+            <Icons.Building />
+          </div>
+          Department Summary
+        </h3>
+        <div className="space-y-4">
+          {quotation.client.departments.map((clientDept, index) => (
+            <div key={clientDept.department.id} className="bg-white rounded-lg p-3 border border-blue-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm font-medium text-blue-700">Department:</span>
+                      <span className="ml-2 text-sm text-blue-900 font-semibold">
+                        {clientDept.department.name}
+                      </span>
+                    </div>
+                    {clientDept.department.contactPerson && (
+                      <div>
+                        <span className="text-sm font-medium text-blue-700">Contact Person:</span>
+                        <span className="ml-2 text-sm text-blue-900">
+                          {clientDept.department.contactPerson}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="space-y-2">
+                    {clientDept.department.email && (
+                      <div>
+                        <span className="text-sm font-medium text-blue-700">Email:</span>
+                        <span className="ml-2 text-sm text-blue-900">
+                          {clientDept.department.email}
+                        </span>
+                      </div>
+                    )}
+                    {clientDept.department.phone && (
+                      <div>
+                        <span className="text-sm font-medium text-blue-700">Phone:</span>
+                        <span className="ml-2 text-sm text-blue-900">
+                          {clientDept.department.phone}
+                        </span>
+                      </div>
+                    )}
+                    {clientDept.department.address && (
+                      <div>
+                        <span className="text-sm font-medium text-blue-700">Address:</span>
+                        <span className="ml-2 text-sm text-blue-900">
+                          {clientDept.department.address}
+                          {clientDept.department.city && `, ${clientDept.department.city}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
 
         {/* Description */}
         {quotation.description && (

@@ -737,15 +737,19 @@ const getClientById = asyncHandler(async (req, res) => {
   const client = await prisma.client.findUnique({
     where: { id },
     include: {
-      department: {
-        select: {
-          id: true,
-          name: true,
-          contactPerson: true,
-          email: true,
-          phone: true,
-          address: true,
-          city: true
+      departments: {
+        include: {
+          department: {
+            select: {
+              id: true,
+              name: true,
+              contactPerson: true,
+              email: true,
+              phone: true,
+              address: true,
+              city: true
+            }
+          }
         }
       },
       quotations: {
@@ -1163,7 +1167,10 @@ const getClientsDropdown = asyncHandler(async (req, res) => {
   const { search = '' } = req.query;
 
   const where = {
-    isActive: true
+    isActive: true,
+    departments: {
+      some: {} // Only clients that have at least one department assigned
+    }
   };
 
   if (search) {
@@ -1368,6 +1375,66 @@ const duplicateClient = asyncHandler(async (req, res) => {
   });
 });
 
+// Add client to department
+const addClientToDepartment = asyncHandler(async (req, res) => {
+  const { clientId, departmentId } = req.params;
+  const { clientDepartmentService } = require('../services/clientDepartmentService');
+
+  const result = await clientDepartmentService.addClientToDepartment(clientId, departmentId);
+
+  res.status(STATUS_CODES.CREATED).json({
+    success: true,
+    message: 'Client added to department successfully',
+    data: result
+  });
+});
+
+// Remove client from department
+const removeClientFromDepartment = asyncHandler(async (req, res) => {
+  const { clientId, departmentId } = req.params;
+  const { clientDepartmentService } = require('../services/clientDepartmentService');
+
+  await clientDepartmentService.removeClientFromDepartment(clientId, departmentId);
+
+  res.status(STATUS_CODES.OK).json({
+    success: true,
+    message: 'Client removed from department successfully'
+  });
+});
+
+// Get client departments
+const getClientDepartments = asyncHandler(async (req, res) => {
+  const { clientId } = req.params;
+  const { clientDepartmentService } = require('../services/clientDepartmentService');
+
+  const departments = await clientDepartmentService.getClientDepartments(clientId);
+
+  res.status(STATUS_CODES.OK).json({
+    success: true,
+    message: 'Client departments retrieved successfully',
+    data: departments
+  });
+});
+
+// Update client departments (replace all)
+const updateClientDepartments = asyncHandler(async (req, res) => {
+  const { clientId } = req.params;
+  const { departmentIds } = req.body;
+  const { clientDepartmentService } = require('../services/clientDepartmentService');
+
+  if (!Array.isArray(departmentIds)) {
+    throw new AppError('departmentIds must be an array', STATUS_CODES.BAD_REQUEST);
+  }
+
+  const departments = await clientDepartmentService.updateClientDepartments(clientId, departmentIds);
+
+  res.status(STATUS_CODES.OK).json({
+    success: true,
+    message: 'Client departments updated successfully',
+    data: departments
+  });
+});
+
 module.exports = {
   getClients,
   getClientById,
@@ -1380,5 +1447,9 @@ module.exports = {
   updateClientCustomFields,
   bulkUpdateCustomFields,
   getClientFormTemplate,
-  duplicateClient
+  duplicateClient,
+  addClientToDepartment,
+  removeClientFromDepartment,
+  getClientDepartments,
+  updateClientDepartments
 };

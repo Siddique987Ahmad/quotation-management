@@ -58,12 +58,10 @@ model Client {
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  departmentId  String?
-  department    Department? @relation(fields: [departmentId], references: [id], onDelete: Restrict, map: "clients_departmentid_fkey")
   invoices      Invoice[]
   quotations    Quotation[]
+  departments   ClientDepartment[]
 
-  @@index([departmentId], map: "clients_departmentid_idx")
   @@map("clients")
 }
 
@@ -77,9 +75,22 @@ model Department {
   phone         String?
   address       String?
   city          String?
-  clients       Client[]
+  clients       ClientDepartment[]
 
   @@map("departments")
+}
+
+model ClientDepartment {
+  id           String     @id @default(uuid())
+  clientId     String
+  departmentId String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, departmentId])
+  @@map("client_departments")
 }
 
 model Quotation {

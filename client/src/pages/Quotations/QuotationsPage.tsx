@@ -735,7 +735,7 @@ const handleBulkAction = async (action: 'approve' | 'reject' | 'delete') => {
           onStatusUpdate={(status) => handleStatusUpdate(state.selectedQuotation.data!, status)}
           onDownloadPDF={(includeTax) => handleDownloadPDF(state.selectedQuotation.data!, includeTax)}
           onDownloadBothPDFs={() => handleDownloadBothPDFs(state.selectedQuotation.data!)}
-          onSendEmail={() => handleSendEmail(state.selectedQuotation.data!)}
+          onSendEmail={(departmentId) => handleSendEmail(state.selectedQuotation.data!, departmentId)}
           actionLoading={false}
         />
       )}

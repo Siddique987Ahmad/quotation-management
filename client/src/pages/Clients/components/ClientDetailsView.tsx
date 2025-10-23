@@ -291,38 +291,42 @@ const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
             <Icons.Settings />
             <span className="ml-2">Department Summary</span>
           </h3>
-          {client.department ? (
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Icons.Settings />
+          {client.departments && client.departments.length > 0 ? (
+            <div className="space-y-4">
+              {client.departments.map((clientDept, index) => (
+                <div key={clientDept.department.id} className="bg-gray-50 p-6 rounded-lg">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Icons.Settings />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-lg font-medium text-gray-900">{clientDept.department.name}</h4>
+                      {clientDept.department.contactPerson && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          <span className="font-medium">Contact:</span> {clientDept.department.contactPerson}
+                        </p>
+                      )}
+                      {clientDept.department.email && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Email:</span> {clientDept.department.email}
+                        </p>
+                      )}
+                      {clientDept.department.phone && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Phone:</span> {clientDept.department.phone}
+                        </p>
+                      )}
+                      {(clientDept.department.address || clientDept.department.city) && (
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Location:</span> {[clientDept.department.address, clientDept.department.city].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-lg font-medium text-gray-900">{client.department.name}</h4>
-                  {client.department.contactPerson && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      <span className="font-medium">Contact:</span> {client.department.contactPerson}
-                    </p>
-                  )}
-                  {client.department.email && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Email:</span> {client.department.email}
-                    </p>
-                  )}
-                  {client.department.phone && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Phone:</span> {client.department.phone}
-                    </p>
-                  )}
-                  {(client.department.address || client.department.city) && (
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Location:</span> {[client.department.address, client.department.city].filter(Boolean).join(', ')}
-                    </p>
-                  )}
-                </div>
-              </div>
+              ))}
             </div>
           ) : (
             <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">

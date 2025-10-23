@@ -1403,7 +1403,13 @@ class SettingsService {
         email: process.env.EMAIL_FROM || '',
         website: process.env.COMPANY_WEBSITE || '',
         taxId: process.env.COMPANY_TAX_ID || '',
-        logo: ''
+        logo: '',
+        // Recipient Information for PDFs
+        recipientName: process.env.RECIPIENT_NAME || 'Ghania Khan',
+        recipientRole: process.env.RECIPIENT_ROLE || 'Manager Commercial',
+        recipientEmail: process.env.RECIPIENT_EMAIL || 'ghania.khan@spectrumtele.com',
+        ntn: process.env.COMPANY_NTN || '',
+        gst: process.env.COMPANY_GST || ''
       },
       email: {
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',

@@ -13,6 +13,12 @@ export interface CompanySettings {
   website: string;
   taxId: string;
   logo: string;
+  // Recipient Information for PDFs
+  recipientName: string;
+  recipientRole: string;
+  recipientEmail: string;
+  ntn: string;
+  gst: string;
 }
 
 export interface EmailSettings {

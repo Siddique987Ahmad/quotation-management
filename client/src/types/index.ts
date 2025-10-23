@@ -117,17 +117,17 @@ export interface Client {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  // Department relation
-  departmentId?: string;
-  department?: {
-    id: string;
-    name: string;
-    contactPerson?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-  };
+  departments?: Array<{
+    department: {
+      id: string;
+      name: string;
+      contactPerson?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      city?: string;
+    };
+  }>;
   // Relations and computed fields
   statistics?: {
     totalQuotations: number;

@@ -367,7 +367,11 @@ const {
   updateClientCustomFields,
   bulkUpdateCustomFields,
   getClientFormTemplate,
-  duplicateClient
+  duplicateClient,
+  addClientToDepartment,
+  removeClientFromDepartment,
+  getClientDepartments,
+  updateClientDepartments
 } = require('../controllers/clientController');
 
 const { authenticateToken } = require('../middleware/auth');
@@ -1081,4 +1085,59 @@ router.get('/check-email', async (req, res) => {
     }
   });
 });
+
+// Client-Department Management Routes
+
+/**
+ * @route   POST /api/clients/:clientId/departments/:departmentId
+ * @desc    Add client to department
+ * @access  Private (Manager+)
+ */
+router.post('/:clientId/departments/:departmentId', [
+  validateUUIDParam('clientId'),
+  validateUUIDParam('departmentId'),
+  requirePermission(PERMISSIONS.CLIENTS.UPDATE)
+], addClientToDepartment);
+
+/**
+ * @route   DELETE /api/clients/:clientId/departments/:departmentId
+ * @desc    Remove client from department
+ * @access  Private (Manager+)
+ */
+router.delete('/:clientId/departments/:departmentId', [
+  validateUUIDParam('clientId'),
+  validateUUIDParam('departmentId'),
+  requirePermission(PERMISSIONS.CLIENTS.UPDATE)
+], removeClientFromDepartment);
+
+/**
+ * @route   GET /api/clients/:clientId/departments
+ * @desc    Get all departments for a client
+ * @access  Private (Users can read client departments)
+ */
+router.get('/:clientId/departments', [
+  validateUUIDParam('clientId'),
+  requirePermission(PERMISSIONS.CLIENTS.READ)
+], getClientDepartments);
+
+/**
+ * @route   PUT /api/clients/:clientId/departments
+ * @desc    Update client departments (replace all)
+ * @access  Private (Manager+)
+ */
+router.put('/:clientId/departments', [
+  validateUUIDParam('clientId'),
+  requirePermission(PERMISSIONS.CLIENTS.UPDATE),
+  body('departmentIds')
+    .isArray()
+    .withMessage('departmentIds must be an array')
+    .custom((value) => {
+      if (!value.every(id => typeof id === 'string')) {
+        throw new Error('All department IDs must be strings');
+      }
+      return true;
+    }),
+  handleValidationErrors
+], updateClientDepartments);
+
 module.exports = router;

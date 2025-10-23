@@ -58,7 +58,13 @@ const SystemSettingsPage: React.FC = () => {
         email: '',
         website: '',
         taxId: '',
-        logo: ''
+        logo: '',
+        // Recipient Information for PDFs
+        recipientName: '',
+        recipientRole: '',
+        recipientEmail: '',
+        ntn: '',
+        gst: ''
       },
       email: {
         host: 'smtp.gmail.com',
@@ -189,7 +195,10 @@ const SystemSettingsPage: React.FC = () => {
 
       if (baseResponse.data.success && baseResponse.data.data) {
         const settingsData: EnhancedSystemSettings = {
-          company: baseResponse.data.data.company || state.settings.company,
+          company: {
+            ...state.settings.company,
+            ...(baseResponse.data.data.company || {})
+          },
           email: baseResponse.data.data.email || state.settings.email,
           tax: baseResponse.data.data.tax || state.settings.tax,
           invoice: baseResponse.data.data.invoice || state.settings.invoice,

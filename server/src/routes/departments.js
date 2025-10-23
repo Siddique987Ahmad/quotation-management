@@ -23,12 +23,16 @@ router.get('/', [
       const departments = await prisma.department.findMany({
         include: {
           clients: {
-            select: {
-              id: true,
-              companyName: true,
-              contactPerson: true,
-              email: true,
-              isActive: true
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  companyName: true,
+                  contactPerson: true,
+                  email: true,
+                  isActive: true
+                }
+              }
             }
           }
         },
@@ -60,9 +64,9 @@ router.post('/', [
       .isLength({ max: 255 })
       .withMessage('Contact person must be less than 255 characters'),
     body('email')
-      .optional()
+      .trim()
       .isEmail()
-      .withMessage('Email must be a valid email address'),
+      .withMessage('Email is required and must be a valid email address'),
     body('phone')
       .optional()
       .trim()
@@ -79,9 +83,8 @@ router.post('/', [
       .isLength({ max: 100 })
       .withMessage('City must be less than 100 characters'),
     body('clientId')
-      .optional()
       .isUUID()
-      .withMessage('Client ID must be a valid UUID')
+      .withMessage('Client ID is required and must be a valid UUID')
   ],
   handleValidationErrors,
   async (req, res, next) => {
@@ -118,17 +121,25 @@ router.post('/', [
           address,
           city,
           clients: clientId ? {
-            connect: { id: clientId }
+            create: {
+              client: {
+                connect: { id: clientId }
+              }
+            }
           } : undefined
         },
         include: {
           clients: {
-            select: {
-              id: true,
-              companyName: true,
-              contactPerson: true,
-              email: true,
-              isActive: true
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  companyName: true,
+                  contactPerson: true,
+                  email: true,
+                  isActive: true
+                }
+              }
             }
           }
         }
@@ -183,9 +194,8 @@ router.put('/:id', [
       .isLength({ max: 100 })
       .withMessage('City must be less than 100 characters'),
     body('clientId')
-      .optional()
       .isUUID()
-      .withMessage('Client ID must be a valid UUID')
+      .withMessage('Client ID is required and must be a valid UUID')
   ],
   handleValidationErrors,
   async (req, res, next) => {
@@ -248,12 +258,16 @@ router.put('/:id', [
         data: updateData,
         include: {
           clients: {
-            select: {
-              id: true,
-              companyName: true,
-              contactPerson: true,
-              email: true,
-              isActive: true
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  companyName: true,
+                  contactPerson: true,
+                  email: true,
+                  isActive: true
+                }
+              }
             }
           }
         }
@@ -330,10 +344,14 @@ router.get('/clients', [
           companyName: true,
           contactPerson: true,
           email: true,
-          department: {
-            select: {
-              id: true,
-              name: true
+          departments: {
+            include: {
+              department: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
             }
           }
         },

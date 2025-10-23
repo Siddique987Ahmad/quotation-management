@@ -340,6 +340,81 @@ const CompanySettingsComponent: React.FC<CompanySettingsProps> = ({
           </div>
         )}
       </div>
+
+      {/* Recipient Information Section */}
+      <div className="md:col-span-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+          PDF Recipient Information
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          This information will appear on generated PDFs as the contact person.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Recipient Name
+        </label>
+        <input
+          type="text"
+          value={settings.recipientName || ''}
+          onChange={(e) => onUpdate('recipientName', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Ghania Khan"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Recipient Role
+        </label>
+        <input
+          type="text"
+          value={settings.recipientRole || ''}
+          onChange={(e) => onUpdate('recipientRole', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Manager Commercial"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Recipient Email
+        </label>
+        <input
+          type="email"
+          value={settings.recipientEmail || ''}
+          onChange={(e) => onUpdate('recipientEmail', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="ghania.khan@spectrumtele.com"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          NTN (National Tax Number)
+        </label>
+        <input
+          type="text"
+          value={settings.ntn || ''}
+          onChange={(e) => onUpdate('ntn', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="3621156-7"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          GST (Goods and Services Tax)
+        </label>
+        <input
+          type="text"
+          value={settings.gst || ''}
+          onChange={(e) => onUpdate('gst', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="0300-3621-156-19"
+        />
+      </div>
     </div>
   );
 };

@@ -2765,32 +2765,140 @@ const sendQuotationEmail = async (quotationData, clientData, pdfBuffer) => {
   return await sendEmail(clientData.email, 'quotation_sent', templateData, emailOptions);
 };
 
-// Send quotation email to multiple clients (department-based)
-const sendQuotationEmailToDepartment = async (quotationData, targetClients, pdfBuffer) => {
+// Send quotation email to department contacts AND client
+const sendQuotationEmailToDepartment = async (quotationData, targetDepartments, pdfBuffer) => {
   const results = [];
   const failedEmails = [];
   
-  for (const client of targetClients) {
+  // Helper function to convert values to numbers
+  const toNumber = (value, defaultValue = 0) => {
+    if (value === null || value === undefined) return defaultValue;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') return parseFloat(value) || defaultValue;
+    if (value && typeof value.toNumber === 'function') return value.toNumber();
+    return parseFloat(value) || defaultValue;
+  };
+
+  // Helper function to format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(toNumber(amount));
+  };
+
+  // Helper function to get client name
+  const getClientName = (client) => {
+    if (client.contactPerson && client.contactPerson.trim()) {
+      return `${client.contactPerson} (${client.companyName})`;
+    }
+    return client.companyName;
+  };
+  
+  // Send emails to departments
+  for (const department of targetDepartments) {
     try {
-      console.log(`📧 Sending quotation email to: ${client.email}`);
+      console.log(`📧 Sending quotation email to department: ${department.name} (${department.email})`);
       
-      // Use existing sendQuotationEmail function for each client
-      const emailResult = await sendQuotationEmail(quotationData, client, pdfBuffer);
+      // Prepare template data for department email
+      const templateData = {
+        quotationNumber: quotationData.quotationNumber,
+        clientName: quotationData.client.companyName,
+        clientContact: quotationData.client.contactPerson,
+        clientEmail: quotationData.client.email,
+        departmentName: department.name,
+        departmentContact: department.contactPerson,
+        totalAmount: formatCurrency(quotationData.totalAmount),
+        validUntil: quotationData.validUntil ? new Date(quotationData.validUntil).toLocaleDateString() : '',
+        notes: quotationData.notes || '',
+        sentDate: new Date().toLocaleDateString()
+      };
+
+      const emailOptions = {
+        attachments: [
+          {
+            filename: `quotation-${quotationData.quotationNumber}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
+      };
+
+      // Send email to department contact
+      const emailResult = await sendEmail(department.email, 'quotation_sent', templateData, emailOptions);
       
       results.push({
-        clientId: client.id,
-        email: client.email,
+        departmentId: department.id,
+        departmentName: department.name,
+        email: department.email,
+        type: 'department',
         success: true,
         messageId: emailResult.messageId
       });
       
-      console.log(`✅ Email sent successfully to ${client.email}`);
+      console.log(`✅ Email sent successfully to department ${department.name} (${department.email})`);
       
     } catch (error) {
-      console.error(`❌ Failed to send email to ${client.email}:`, error.message);
+      console.error(`❌ Failed to send email to department ${department.name} (${department.email}):`, error.message);
       failedEmails.push({
-        clientId: client.id,
-        email: client.email,
+        departmentId: department.id,
+        departmentName: department.name,
+        email: department.email,
+        type: 'department',
+        error: error.message
+      });
+    }
+  }
+
+  // Also send email to client
+  if (quotationData.client.email && quotationData.client.email.trim() !== '') {
+    try {
+      console.log(`📧 Sending quotation email to client: ${quotationData.client.companyName} (${quotationData.client.email})`);
+      
+      // Prepare template data for client email
+      const clientTemplateData = {
+        clientName: getClientName(quotationData.client),
+        quotationNumber: quotationData.quotationNumber,
+        quotationTitle: quotationData.title || 'Untitled Project',
+        description: quotationData.description || '',
+        totalAmount: formatCurrency(quotationData.totalAmount),
+        validUntil: quotationData.validUntil ? new Date(quotationData.validUntil).toLocaleDateString() : '',
+        notes: quotationData.notes || '',
+        sentDate: new Date().toLocaleDateString()
+      };
+
+      const clientEmailOptions = {
+        attachments: [
+          {
+            filename: `quotation-${quotationData.quotationNumber}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
+      };
+
+      // Send email to client
+      const clientEmailResult = await sendEmail(quotationData.client.email, 'quotation_sent', clientTemplateData, clientEmailOptions);
+      
+      results.push({
+        clientId: quotationData.client.id,
+        clientName: quotationData.client.companyName,
+        email: quotationData.client.email,
+        type: 'client',
+        success: true,
+        messageId: clientEmailResult.messageId
+      });
+      
+      console.log(`✅ Email sent successfully to client ${quotationData.client.companyName} (${quotationData.client.email})`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to send email to client ${quotationData.client.companyName} (${quotationData.client.email}):`, error.message);
+      failedEmails.push({
+        clientId: quotationData.client.id,
+        clientName: quotationData.client.companyName,
+        email: quotationData.client.email,
+        type: 'client',
         error: error.message
       });
     }

@@ -3,6 +3,19 @@ const fs = require('fs').promises;
 const path = require('path');
 const { settingsService } = require('./settingsService');
 
+// Function to convert signature image to base64
+const getSignatureBase64 = async () => {
+  try {
+    const signaturePath = path.join(__dirname, '../assets/signature.png');
+    const imageBuffer = await fs.readFile(signaturePath);
+    const base64Image = imageBuffer.toString('base64');
+    return `data:image/png;base64,${base64Image}`;
+  } catch (error) {
+    console.error('Error loading signature image:', error);
+    return null;
+  }
+};
+
 // Initialize browser instance
 let browser;
 
@@ -39,6 +52,9 @@ const closeBrowser = async () => {
 const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxType = 'GST_AND_PST') => {
   // Get current company settings from database
   const companyData = await settingsService.getCompanySettings();
+  
+  // Get signature image as base64
+  const signatureBase64 = await getSignatureBase64();
   
   const formatDate = (date) => {
     return date ? new Date(date).toLocaleDateString('en-US', {
@@ -305,8 +321,8 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             .invoice-details {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 30px;
-                margin-top: 20px;
+                margin-bottom: 15px;
+                margin-top: 10px;
             }
             
             .invoice-left {
@@ -409,7 +425,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .scope-of-work-section {
-                margin-bottom: 30px;
+                margin-bottom: 15px;
                 position: relative;
             }
             
@@ -548,8 +564,8 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 background: #f8fafc;
                 border: 1px solid #e2e8f0;
                 border-radius: 8px;
-                padding: 20px;
-                margin-bottom: 30px;
+                padding: 15px;
+                margin-bottom: 15px;
             }
             
             .payment-info h3 {
@@ -670,6 +686,30 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                     </div>
                 </div>
             </div>
+            
+            <!-- Separator Line -->
+              <div style="border-bottom: 1px solid #000; margin: 0 auto 20px auto; width: 90%;"></div>
+
+              <!-- Header Reference Section -->
+              <div style="display: flex; justify-content: center; align-items: flex-start; gap: 50px; margin: 0 auto 20px auto; width: 90%; text-align: center;">
+                  <div style="text-align: left;">
+                        <div style="font-weight: bold; text-decoration: underline; font-size: 12px;">ABS Ref:</div>
+                        <div style="font-size: 12px; margin-top: 5px;">Service Order No.</div>
+                        <div style="font-size: 12px; margin-top: 5px;">Dated:</div>
+                    </div>
+
+
+                  <div>
+                      <div style="font-weight: bold; font-size: 12px;">SMS By Regional Office</div>
+                  </div>
+
+                  <div>
+                      <div style="font-weight: bold; font-size: 12px;">Our Ref:</div>
+                      <div style="font-size: 12px; margin-top: 5px;">NTN: <strong style="text-decoration: underline;">${companyData.ntn || ''}</strong></div>
+                      <div style="font-size: 12px; margin-top: 5px;">GST: <strong style="text-decoration: underline;">${companyData.gst || ''}</strong></div>
+                  </div>
+              </div>
+
             
             <!-- Scope of Work Table -->
             <div class="scope-of-work-section">
@@ -884,14 +924,20 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 ${companyData.name || 'Spectrum Telecom (Pvt.) Ltd'}
             </div>
             
-           
-            
-            
-           
-            
-           
-            
-           
+            <!-- Signature and Recipient Information -->
+            <div style="margin-top: 15px;">
+                <!-- Signature space -->
+                <div style="height: 50px; margin-bottom: 3px; text-align: left;">
+                    ${signatureBase64 ? `<img src="${signatureBase64}" alt="Chief Executive Signature" style="max-height: 50px; max-width: 180px; display: block;" />` : '<div style="height: 50px; width: 180px; margin-bottom: 3px;"></div>'}
+                </div>
+                
+                <!-- Recipient Information -->
+                <div style="text-align: left; margin-top: 5px;">
+                    <div style="font-size: 11px; font-weight: bold; margin-bottom: 3px;">${companyData.recipientName || 'Ghania Khan'}</div>
+                    <div style="font-size: 11px; font-weight: bold; margin-bottom: 3px;">${companyData.recipientRole || 'Manager Commercial'}</div>
+                    <div style="font-size: 11px; color: #0066cc; text-decoration: underline;">${companyData.recipientEmail || 'ghania.khan@spectrumtele.com'}</div>
+                </div>
+            </div>
         </div>
     </body>
     </html>
@@ -1612,13 +1658,16 @@ const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxTyp
   try {
     const html = await generateInvoiceHTML(invoiceData, clientData, quotationData, taxType);
     const pdf = await generatePDF(html, {
-      displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
-      footerTemplate: `
-        <div style="font-size: 10px; text-align: center; width: 100%; color: #666;">
-          <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span> | ${taxType.replace('_', ' ')}</span>
-        </div>
-      `
+      displayHeaderFooter: false,
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '0.5in',
+        right: '0.5in',
+        bottom: '0.5in',
+        left: '0.5in'
+      },
+      preferCSSPageSize: true
     });
 
     const taxSuffix = taxType.toLowerCase().replace(/_/g, '-');

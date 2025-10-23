@@ -206,7 +206,22 @@ const getQuotationById = asyncHandler(async (req, res) => {
           zipCode: true,
           country: true,
           taxId: true,
-          customFields: true
+          customFields: true,
+          departments: {
+            include: {
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                  contactPerson: true,
+                  email: true,
+                  phone: true,
+                  address: true,
+                  city: true
+                }
+              }
+            }
+          }
         }
       },
       user: {
@@ -2362,7 +2377,22 @@ const getQuotationWithInvoices = asyncHandler(async (req, res) => {
           state: true,
           zipCode: true,
           country: true,
-          taxId: true
+          taxId: true,
+          departments: {
+            include: {
+              department: {
+                select: {
+                  id: true,
+                  name: true,
+                  contactPerson: true,
+                  email: true,
+                  phone: true,
+                  address: true,
+                  city: true
+                }
+              }
+            }
+          }
         }
       },
       user: {
