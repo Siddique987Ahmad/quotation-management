@@ -38,9 +38,35 @@ const getBrowser = async (retryCount = 0) => {
           '--disable-web-security',
           '--disable-features=VizDisplayCompositor',
           '--memory-pressure-off',
-          '--max_old_space_size=4096'
+          '--max_old_space_size=4096',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-default-apps',
+          '--disable-sync',
+          '--disable-translate',
+          '--hide-scrollbars',
+          '--mute-audio',
+          '--no-default-browser-check',
+          '--no-pings',
+          '--password-store=basic',
+          '--use-mock-keychain',
+          '--disable-component-extensions-with-background-pages',
+          '--disable-background-networking',
+          '--disable-default-apps',
+          '--disable-sync',
+          '--metrics-recording-only',
+          '--no-report-upload',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection'
         ],
-        timeout: 30000
+        timeout: 60000,
+        protocolTimeout: 60000
       });
       console.log('✅ Browser launched successfully');
     }
@@ -73,6 +99,17 @@ const resetBrowser = async () => {
   console.log('🔄 Resetting browser connection...');
   await closeBrowser();
   browser = null;
+};
+
+// Monitor system resources
+const checkSystemResources = () => {
+  const used = process.memoryUsage();
+  console.log('📊 Memory usage:', {
+    rss: `${Math.round(used.rss / 1024 / 1024)} MB`,
+    heapTotal: `${Math.round(used.heapTotal / 1024 / 1024)} MB`,
+    heapUsed: `${Math.round(used.heapUsed / 1024 / 1024)} MB`,
+    external: `${Math.round(used.external / 1024 / 1024)} MB`
+  });
 };
 
 
@@ -1653,12 +1690,15 @@ ${termsHTML}
   `;
 };
 
-// Generate PDF from HTML with retry logic
+// Generate PDF from HTML with retry logic and fallback
 const generatePDF = async (html, options = {}, retryCount = 0) => {
   let browser;
   let page;
   
   try {
+    console.log(`🔄 Starting PDF generation (attempt ${retryCount + 1})...`);
+    checkSystemResources();
+    
     browser = await getBrowser();
     page = await browser.newPage();
 
@@ -1666,11 +1706,13 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     page.setDefaultTimeout(30000);
     page.setDefaultNavigationTimeout(30000);
 
+    console.log('📄 Setting page content...');
     await page.setContent(html, { 
       waitUntil: 'networkidle0',
       timeout: 30000 
     });
 
+    console.log('📄 Generating PDF...');
     const pdfOptions = {
       format: 'A4',
       printBackground: true,
@@ -1686,12 +1728,17 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     };
 
     const pdf = await page.pdf(pdfOptions);
+    console.log('✅ PDF generated successfully');
     return pdf;
   } catch (error) {
     console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
+    console.error('Error details:', error);
     
     // If it's a connection error and we haven't retried too many times
-    if ((error.message.includes('Connection closed') || error.message.includes('Protocol error')) && retryCount < 2) {
+    if ((error.message.includes('Connection closed') || 
+         error.message.includes('Protocol error') ||
+         error.message.includes('ConnectionClosedError') ||
+         error.message.includes('Target closed')) && retryCount < 3) {
       console.log('🔄 Retrying PDF generation with fresh browser...');
       
       // Close current browser and create a new one
@@ -1704,13 +1751,35 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
       }
       browser = null;
       
-      // Wait a bit before retrying
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait longer before retrying
+      const waitTime = (retryCount + 1) * 3000; // 3s, 6s, 9s
+      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       
       return generatePDF(html, options, retryCount + 1);
     }
     
-    throw new Error(`PDF generation failed: ${error.message}`);
+    // If all retries failed, try one more time with a completely fresh browser
+    if (retryCount === 0) {
+      console.log('🔄 Final attempt with completely fresh browser...');
+      browser = null;
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return generatePDF(html, options, 1);
+    }
+    
+    // If still failing, try with minimal options
+    if (retryCount === 1) {
+      console.log('🔄 Trying with minimal PDF options...');
+      const minimalOptions = {
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
+        timeout: 15000
+      };
+      return generatePDF(html, minimalOptions, 2);
+    }
+    
+    throw new Error(`PDF generation failed after ${retryCount + 1} attempts: ${error.message}`);
   } finally {
     if (page) {
       try {
@@ -1980,5 +2049,6 @@ module.exports = {
   savePDFToFile,
   closeBrowser,
   resetBrowser,
+  checkSystemResources,
   cleanup
 };
