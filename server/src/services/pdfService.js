@@ -1720,49 +1720,157 @@ ${termsHTML}
 };
 
 // Generate PDF from HTML with retry logic and fallback
+// const generatePDF = async (html, options = {}, retryCount = 0) => {
+//   let browser;
+//   let page;
+  
+//   try {
+//     console.log(`🔄 Starting PDF generation (attempt ${retryCount + 1})...`);
+//     checkSystemResources();
+    
+//     browser = await getBrowser();
+//     page = await browser.newPage();
+
+//     // Set page timeout
+//     page.setDefaultTimeout(30000);
+//     page.setDefaultNavigationTimeout(30000);
+
+//     console.log('📄 Setting page content...');
+//     // await page.setContent(html, { 
+//     //   waitUntil: 'networkidle0',
+//     //   timeout: 30000 
+//     // });
+//     // Ensure main frame is ready
+//     await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
+//     await new Promise(r => setTimeout(r, 300));
+    
+//     await page.setContent(html, {
+//       waitUntil: 'networkidle0',
+//       timeout: 30000
+//     });
+
+// // Extra stability for slow servers
+// await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
+
+
+//     console.log('📄 Generating PDF...');
+//     const pdfOptions = {
+//       format: 'A4',
+//       printBackground: true,
+//       margin: {
+//         top: '10mm',
+//         right: '10mm',
+//         bottom: '10mm',
+//         left: '10mm'
+//       },
+//       preferCSSPageSize: false,
+//       timeout: 30000,
+//       ...options
+//     };
+
+//     const pdf = await page.pdf(pdfOptions);
+//     console.log('✅ PDF generated successfully');
+//     return pdf;
+//   } catch (error) {
+//     console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
+//     console.error('Error details:', error);
+    
+//     // If it's a connection error and we haven't retried too many times
+//     if ((error.message.includes('Connection closed') || 
+//          error.message.includes('Protocol error') ||
+//          error.message.includes('ConnectionClosedError') ||
+//          error.message.includes('Target closed')) && retryCount < 3) {
+//       console.log('🔄 Retrying PDF generation with fresh browser...');
+      
+//       // Close current browser and create a new one
+//       if (browser && browser.isConnected()) {
+//         try {
+//           await browser.close();
+//         } catch (closeError) {
+//           console.log('Browser close error (expected):', closeError.message);
+//         }
+//       }
+//       browser = null;
+      
+//       // Wait longer before retrying
+//       const waitTime = (retryCount + 1) * 3000; // 3s, 6s, 9s
+//       console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+//       await new Promise(resolve => setTimeout(resolve, waitTime));
+      
+//       return generatePDF(html, options, retryCount + 1);
+//     }
+    
+//     // If all retries failed, try one more time with a completely fresh browser
+//     if (retryCount === 0) {
+//       console.log('🔄 Final attempt with completely fresh browser...');
+//       browser = null;
+//       await new Promise(resolve => setTimeout(resolve, 5000));
+//       return generatePDF(html, options, 1);
+//     }
+    
+//     // If still failing, try with minimal options
+//     if (retryCount === 1) {
+//       console.log('🔄 Trying with minimal PDF options...');
+//       const minimalOptions = {
+//         format: 'A4',
+//         printBackground: true,
+//         margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
+//         timeout: 15000
+//       };
+//       return generatePDF(html, minimalOptions, 2);
+//     }
+    
+//     throw new Error(`PDF generation failed after ${retryCount + 1} attempts: ${error.message}`);
+//   } finally {
+//     if (page) {
+//       try {
+//         await page.close();
+//       } catch (closeError) {
+//         console.log('Page close error (expected):', closeError.message);
+//       }
+//     }
+//   }
+// };
+
 const generatePDF = async (html, options = {}, retryCount = 0) => {
   let browser;
   let page;
-  
+
   try {
     console.log(`🔄 Starting PDF generation (attempt ${retryCount + 1})...`);
     checkSystemResources();
-    
+
     browser = await getBrowser();
     page = await browser.newPage();
 
-    // Set page timeout
+    // Page timeouts
     page.setDefaultTimeout(30000);
     page.setDefaultNavigationTimeout(30000);
 
-    console.log('📄 Setting page content...');
-    // await page.setContent(html, { 
-    //   waitUntil: 'networkidle0',
-    //   timeout: 30000 
-    // });
-    // Ensure main frame is ready
+    console.log('📄 Preparing page...');
+
+    // Ensure main frame exists BEFORE loading content
     await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
     await new Promise(r => setTimeout(r, 300));
-    
+
+    // Load HTML safely
     await page.setContent(html, {
       waitUntil: 'networkidle0',
       timeout: 30000
     });
 
-// Extra stability for slow servers
-await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
+    await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
 
+    if (!page.mainFrame()) {
+      throw new Error("Main frame not ready after content load");
+    }
 
     console.log('📄 Generating PDF...');
+
     const pdfOptions = {
       format: 'A4',
       printBackground: true,
-      margin: {
-        top: '10mm',
-        right: '10mm',
-        bottom: '10mm',
-        left: '10mm'
-      },
+      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
       preferCSSPageSize: false,
       timeout: 30000,
       ...options
@@ -1773,64 +1881,51 @@ await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
     return pdf;
   } catch (error) {
     console.error(`❌ PDF generation failed (attempt ${retryCount + 1}):`, error.message);
-    console.error('Error details:', error);
-    
-    // If it's a connection error and we haven't retried too many times
-    if ((error.message.includes('Connection closed') || 
-         error.message.includes('Protocol error') ||
-         error.message.includes('ConnectionClosedError') ||
-         error.message.includes('Target closed')) && retryCount < 3) {
-      console.log('🔄 Retrying PDF generation with fresh browser...');
-      
-      // Close current browser and create a new one
-      if (browser && browser.isConnected()) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.log('Browser close error (expected):', closeError.message);
-        }
-      }
-      browser = null;
-      
-      // Wait longer before retrying
-      const waitTime = (retryCount + 1) * 3000; // 3s, 6s, 9s
-      console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      
+
+    const isConnectionError =
+      error.message.includes('Connection closed') ||
+      error.message.includes('Protocol error') ||
+      error.message.includes('Target closed') ||
+      error.message.includes('ConnectionFailed') ||
+      error.message.includes('main frame');
+
+    // 🔁 Retry up to 3 times WITHOUT restarting browser
+    if (isConnectionError && retryCount < 2) {
+      console.log('🔄 Retrying with same browser...');
+      await new Promise(r => setTimeout(r, 2000));
       return generatePDF(html, options, retryCount + 1);
     }
-    
-    // If all retries failed, try one more time with a completely fresh browser
-    if (retryCount === 0) {
-      console.log('🔄 Final attempt with completely fresh browser...');
-      browser = null;
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      return generatePDF(html, options, 1);
+
+    // 🧹 On 4th failure, restart browser (final fallback)
+    if (retryCount === 2) {
+      console.log('♻️ Restarting browser for final attempts...');
+      if (browser && browser.isConnected()) {
+        try { await browser.close(); } catch (_) {}
+      }
+      global.browserInstance = null;
+      await new Promise(r => setTimeout(r, 3000));
+      return generatePDF(html, options, retryCount + 1);
     }
-    
-    // If still failing, try with minimal options
-    if (retryCount === 1) {
-      console.log('🔄 Trying with minimal PDF options...');
+
+    // 🏁 Last fallback with minimal settings
+    if (retryCount === 3) {
+      console.log('🔄 Trying minimal PDF options...');
       const minimalOptions = {
         format: 'A4',
         printBackground: true,
-        margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
-        timeout: 15000
+        margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' }
       };
-      return generatePDF(html, minimalOptions, 2);
+      return generatePDF(html, minimalOptions, retryCount + 1);
     }
-    
-    throw new Error(`PDF generation failed after ${retryCount + 1} attempts: ${error.message}`);
+
+    throw new Error(`PDF generation failed after 4 attempts: ${error.message}`);
   } finally {
     if (page) {
-      try {
-        await page.close();
-      } catch (closeError) {
-        console.log('Page close error (expected):', closeError.message);
-      }
+      try { await page.close(); } catch (_) {}
     }
   }
 };
+
 
 // Generate invoice PDF with settings
 const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxType = 'GST_AND_PST') => {
