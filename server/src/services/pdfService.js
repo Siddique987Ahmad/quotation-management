@@ -24,50 +24,79 @@ const getBrowser = async (retryCount = 0) => {
   try {
     if (!browser || !browser.isConnected()) {
       console.log(`🔄 Launching browser (attempt ${retryCount + 1})...`);
+      // browser = await puppeteer.launch({
+      //   headless: 'new',
+      //   args: [
+      //     '--no-sandbox',
+      //     '--disable-setuid-sandbox',
+      //     '--disable-dev-shm-usage',
+      //     '--disable-accelerated-2d-canvas',
+      //     '--no-first-run',
+      //     '--no-zygote',
+      //     '--single-process',
+      //     '--disable-gpu',
+      //     '--disable-web-security',
+      //     '--disable-features=VizDisplayCompositor',
+      //     '--memory-pressure-off',
+      //     '--max_old_space_size=4096',
+      //     '--disable-background-timer-throttling',
+      //     '--disable-backgrounding-occluded-windows',
+      //     '--disable-renderer-backgrounding',
+      //     '--disable-extensions',
+      //     '--disable-plugins',
+      //     '--disable-default-apps',
+      //     '--disable-sync',
+      //     '--disable-translate',
+      //     '--hide-scrollbars',
+      //     '--mute-audio',
+      //     '--no-default-browser-check',
+      //     '--no-pings',
+      //     '--password-store=basic',
+      //     '--use-mock-keychain',
+      //     '--disable-component-extensions-with-background-pages',
+      //     '--disable-background-networking',
+      //     '--disable-default-apps',
+      //     '--disable-sync',
+      //     '--metrics-recording-only',
+      //     '--no-report-upload',
+      //     '--disable-background-timer-throttling',
+      //     '--disable-backgrounding-occluded-windows',
+      //     '--disable-renderer-backgrounding',
+      //     '--disable-features=TranslateUI',
+      //     '--disable-ipc-flooding-protection'
+      //   ],
+      //   timeout: 60000,
+      //   protocolTimeout: 60000
+      // });
       browser = await puppeteer.launch({
-        headless: 'new',
+        headless: "new",
         args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-gpu',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--memory-pressure-off',
-          '--max_old_space_size=4096',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-extensions',
-          '--disable-plugins',
-          '--disable-default-apps',
-          '--disable-sync',
-          '--disable-translate',
-          '--hide-scrollbars',
-          '--mute-audio',
-          '--no-default-browser-check',
-          '--no-pings',
-          '--password-store=basic',
-          '--use-mock-keychain',
-          '--disable-component-extensions-with-background-pages',
-          '--disable-background-networking',
-          '--disable-default-apps',
-          '--disable-sync',
-          '--metrics-recording-only',
-          '--no-report-upload',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-          '--disable-features=TranslateUI',
-          '--disable-ipc-flooding-protection'
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+          "--disable-web-security",
+          "--disable-features=VizDisplayCompositor",
+          "--disable-extensions",
+          "--disable-default-apps",
+          "--disable-sync",
+          "--hide-scrollbars",
+          "--mute-audio",
+          "--disable-background-networking",
+          "--metrics-recording-only",
+          "--no-report-upload",
+          "--disable-component-extensions-with-background-pages",
+          "--password-store=basic",
+          "--use-mock-keychain"
         ],
         timeout: 60000,
         protocolTimeout: 60000
       });
+      
+      
       console.log('✅ Browser launched successfully');
     }
     return browser;
@@ -1712,13 +1741,13 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     //   timeout: 30000 
     // });
     // Ensure main frame is ready
-await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
-
-// Now safely set the HTML
-await page.setContent(html, { 
-  waitUntil: 'networkidle0',
-  timeout: 30000 
-}).catch(() => {});
+    await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
+    await new Promise(r => setTimeout(r, 300));
+    
+    await page.setContent(html, {
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
 
 // Extra stability for slow servers
 await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
