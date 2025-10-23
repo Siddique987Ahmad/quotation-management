@@ -250,8 +250,7 @@ router.get('/:id/pdf', [
     const pdfResult = await generateQuotationPDF(
       processedQuotation,
       quotation.client,
-      quotation.user,
-      companyData
+      quotation.user
     );
 
     // Modify filename to indicate tax status
@@ -458,8 +457,7 @@ router.post('/:id/send-email', [
     const pdfResult = await generateQuotationPDF(
       quotation,
       quotation.client,
-      quotation.user,
-      companyData
+      quotation.user
     );
 
     if (!pdfResult || !pdfResult.pdf) {
