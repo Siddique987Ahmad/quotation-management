@@ -25,7 +25,7 @@ const getBrowser = async (retryCount = 0) => {
     if (!browser || !browser.isConnected()) {
       console.log(`🔄 Launching browser (attempt ${retryCount + 1})...`);
       browser = await puppeteer.launch({
-        headless: true,
+        headless: 'new',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -1707,10 +1707,22 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     page.setDefaultNavigationTimeout(30000);
 
     console.log('📄 Setting page content...');
-    await page.setContent(html, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000 
-    });
+    // await page.setContent(html, { 
+    //   waitUntil: 'networkidle0',
+    //   timeout: 30000 
+    // });
+    // Ensure main frame is ready
+await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
+
+// Now safely set the HTML
+await page.setContent(html, { 
+  waitUntil: 'networkidle0',
+  timeout: 30000 
+}).catch(() => {});
+
+// Extra stability for slow servers
+await page.waitForNetworkIdle({ idleTime: 500 }).catch(() => {});
+
 
     console.log('📄 Generating PDF...');
     const pdfOptions = {
