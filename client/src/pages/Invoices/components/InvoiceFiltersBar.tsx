@@ -1,5 +1,5 @@
 import React from 'react';
-import { InvoiceFilters, InvoiceStatus, InvoiceType } from '../types';
+import { InvoiceFilters } from '../types';
 import { Client, TaxPreset } from '../../../types';
 import { hasPermission } from '../../../utils/auth';
 import { Icons } from '../../../components/Icons/Icons';
@@ -17,9 +17,6 @@ interface InvoiceFiltersBarProps {
   onBulkTaxUpdate: (gstPercentage: number, pstPercentage: number) => void;
 }
 
-const getTypeLabel = (type: InvoiceType): string => {
-  return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-};
 
 const InvoiceFiltersBar: React.FC<InvoiceFiltersBarProps> = ({
   searchQuery,
@@ -54,28 +51,6 @@ const InvoiceFiltersBar: React.FC<InvoiceFiltersBarProps> = ({
         
         <div className="flex gap-2">
           <select
-            value={filters.status || ''}
-            onChange={(e) => onFilterChange('status', e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">All Statuses</option>
-            {(Object.values(InvoiceStatus) as InvoiceStatus[]).map(status => (
-              <option key={status} value={status}>{status}</option>
-            ))}
-          </select>
-
-          <select
-            value={filters.type || ''}
-            onChange={(e) => onFilterChange('type', e.target.value || undefined)}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">All Types</option>
-            {(Object.values(InvoiceType) as InvoiceType[]).map(type => (
-              <option key={type} value={type}>{getTypeLabel(type)}</option>
-            ))}
-          </select>
-          
-          <select
             value={filters.clientId || ''}
             onChange={(e) => onFilterChange('clientId', e.target.value || undefined)}
             className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -100,13 +75,13 @@ const InvoiceFiltersBar: React.FC<InvoiceFiltersBarProps> = ({
             <div className="flex gap-2 flex-wrap">
               {hasPermission('invoices', 'update') && (
                 <>
-                  <button
+                  {/* <button
                     onClick={() => onBulkAction('send')}
                     disabled={bulkLoading}
                     className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-400"
                   >
                     Send
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => onBulkAction('mark_paid')}
                     disabled={bulkLoading}
@@ -134,7 +109,7 @@ const InvoiceFiltersBar: React.FC<InvoiceFiltersBarProps> = ({
               )}
               
               {/* Tax Rate Update Dropdown */}
-              {hasPermission('invoices', 'update') && taxPresets.length > 0 && (
+              {/* {hasPermission('invoices', 'update') && taxPresets.length > 0 && (
                 <div className="relative">
                   <select
                     onChange={(e) => {
@@ -156,7 +131,7 @@ const InvoiceFiltersBar: React.FC<InvoiceFiltersBarProps> = ({
                     ))}
                   </select>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

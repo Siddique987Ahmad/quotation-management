@@ -989,6 +989,16 @@ export const clientsAPI = {
   checkEmail: (email: string): Promise<AxiosResponse<ApiResponse>> =>
     api.get(`/clients/check-email`, { params: { email } }),
 
+  // Client-Department relationships
+  addToDepartment: (clientId: string, departmentId: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.post(`/clients/${clientId}/departments/${departmentId}`),
+  removeFromDepartment: (clientId: string, departmentId: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.delete(`/clients/${clientId}/departments/${departmentId}`),
+  getDepartments: (clientId: string): Promise<AxiosResponse<ApiResponse>> =>
+    api.get(`/clients/${clientId}/departments`),
+  updateDepartments: (clientId: string, departmentIds: string[]): Promise<AxiosResponse<ApiResponse>> =>
+    api.put(`/clients/${clientId}/departments`, { departmentIds }),
+
 };
 
 // Departments API

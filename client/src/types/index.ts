@@ -1682,6 +1682,13 @@ export interface UserPermissions {
     mark_paid: boolean;
     update_tax_rates: boolean; // NEW: Permission for updating tax rates
   };
+  departments: {
+    read: boolean;
+    create: boolean;
+    update: boolean;
+    delete: boolean;
+    manage_clients: boolean;
+  };
 }
 
 // =============================================================================

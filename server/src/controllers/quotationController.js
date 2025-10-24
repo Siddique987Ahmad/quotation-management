@@ -742,7 +742,7 @@ const updateQuotation = asyncHandler(async (req, res) => {
 //   // Check if user has permission to approve/reject (handled by middleware in routes)
 //   const { hasPermission } = require('../middleware/permissions');
 //   if ((status === QUOTATION_STATUS.APPROVED || status === QUOTATION_STATUS.REJECTED) && 
-//       !hasPermission(req.user.role, 'quotations:approve')) {
+//       !(await hasPermission(req.user.role, 'quotations:approve'))) {
 //     throw new AppError('Insufficient permissions to approve/reject quotations', STATUS_CODES.FORBIDDEN);
 //   }
 
@@ -847,7 +847,7 @@ const updateQuotation = asyncHandler(async (req, res) => {
 
 //   // Check if user has permission to approve/reject (handled by middleware in routes)
 //   if ((status === QUOTATION_STATUS.APPROVED || status === QUOTATION_STATUS.REJECTED) && 
-//       !hasPermission(req.user.role, 'quotations:approve')) {
+//       !(await hasPermission(req.user.role, 'quotations:approve'))) {
 //     throw new AppError('Insufficient permissions to approve/reject quotations', STATUS_CODES.FORBIDDEN);
 //   }
 
@@ -1067,7 +1067,7 @@ const updateQuotationStatus = asyncHandler(async (req, res) => {
   // Check permissions
   console.log('🔑 Checking permissions...');
   if ((status === QUOTATION_STATUS.APPROVED || status === QUOTATION_STATUS.REJECTED) && 
-      !hasPermission(req.user.role, 'quotations:approve')) {
+      !(await hasPermission(req.user.role, 'quotations:approve'))) {
     console.log('❌ Insufficient permissions');
     throw new AppError('Insufficient permissions to approve/reject quotations', STATUS_CODES.FORBIDDEN);
   }
@@ -1209,11 +1209,11 @@ const updateQuotationStatus = asyncHandler(async (req, res) => {
 
 //   // Check permissions (handled by middleware in routes)
 //   // const { hasPermission } = require('../middleware/permissions');
-//   if ((action === 'approve' || action === 'reject') && !hasPermission(req.user.role, 'quotations:approve')) {
+//   if ((action === 'approve' || action === 'reject') && !(await hasPermission(req.user.role, 'quotations:approve'))) {
 //     throw new AppError('Insufficient permissions to approve/reject quotations', STATUS_CODES.FORBIDDEN);
 //   }
 
-//   if (action === 'delete' && !hasPermission(req.user.role, 'quotations:delete')) {
+//   if (action === 'delete' && !(await hasPermission(req.user.role, 'quotations:delete'))) {
 //     throw new AppError('Insufficient permissions to delete quotations', STATUS_CODES.FORBIDDEN);
 //   }
 
@@ -1329,11 +1329,11 @@ const updateQuotationStatus = asyncHandler(async (req, res) => {
 //   }
 
 //   // Check permissions
-//   if ((action === 'approve' || action === 'reject') && !hasPermission(req.user.role, 'quotations:approve')) {
+//   if ((action === 'approve' || action === 'reject') && !(await hasPermission(req.user.role, 'quotations:approve'))) {
 //     throw new AppError('Insufficient permissions to approve/reject quotations', STATUS_CODES.FORBIDDEN);
 //   }
 
-//   if (action === 'delete' && !hasPermission(req.user.role, 'quotations:delete')) {
+//   if (action === 'delete' && !(await hasPermission(req.user.role, 'quotations:delete'))) {
 //     throw new AppError('Insufficient permissions to delete quotations', STATUS_CODES.FORBIDDEN);
 //   }
 
@@ -1606,11 +1606,11 @@ const bulkQuotationActions = asyncHandler(async (req, res) => {
   }
 
   // Check permissions
-  if ((action === 'approve' || action === 'reject') && !hasPermission(req.user.role, 'quotations:approve')) {
+  if ((action === 'approve' || action === 'reject') && !(await hasPermission(req.user.role, 'quotations:approve'))) {
     throw new AppError('Insufficient permissions to approve/reject quotations', STATUS_CODES.FORBIDDEN);
   }
 
-  if (action === 'delete' && !hasPermission(req.user.role, 'quotations:delete')) {
+  if (action === 'delete' && !(await hasPermission(req.user.role, 'quotations:delete'))) {
     throw new AppError('Insufficient permissions to delete quotations', STATUS_CODES.FORBIDDEN);
   }
 
@@ -2319,12 +2319,29 @@ const bulkQuotationActions = asyncHandler(async (req, res) => {
   break;
 
       case 'delete':
-        result = await prisma.quotation.deleteMany({
-          where: {
-            ...where,
-            status: { not: QUOTATION_STATUS.APPROVED }
-          }
-        });
+        // Check if user has delete permission for approved quotations
+        const hasDeletePermission = await hasPermission(req.user.role, 'quotations:delete');
+        
+        if (hasDeletePermission) {
+          // User has delete permission - can delete all quotations including approved ones
+          // First, delete associated invoices for all quotations
+          await prisma.invoice.deleteMany({
+            where: { quotationId: { in: quotationIds } }
+          });
+          
+          // Then delete all quotations
+          result = await prisma.quotation.deleteMany({
+            where: { ...where }
+          });
+        } else {
+          // User doesn't have delete permission - can only delete non-approved quotations
+          result = await prisma.quotation.deleteMany({
+            where: {
+              ...where,
+              status: { not: QUOTATION_STATUS.APPROVED }
+            }
+          });
+        }
         actionMessage = 'deleted';
         break;
     }
@@ -2481,13 +2498,24 @@ const deleteQuotation = asyncHandler(async (req, res) => {
     throw new AppError(MESSAGES.ERROR.FORBIDDEN, STATUS_CODES.FORBIDDEN);
   }
 
+  // Check if user has delete permission for approved quotations
+  const hasDeletePermission = await hasPermission(req.user.role, 'quotations:delete');
+  
   // Check if quotation can be deleted
-  if (existingQuotation.status === QUOTATION_STATUS.APPROVED) {
+  if (existingQuotation.status === QUOTATION_STATUS.APPROVED && !hasDeletePermission) {
     throw new AppError('Cannot delete approved quotation', STATUS_CODES.BAD_REQUEST);
   }
 
+  // If quotation has invoices, delete them first (only if user has delete permission)
   if (existingQuotation._count.invoices > 0) {
-    throw new AppError('Cannot delete quotation with associated invoices', STATUS_CODES.BAD_REQUEST);
+    if (!hasDeletePermission) {
+      throw new AppError('Cannot delete quotation with associated invoices', STATUS_CODES.BAD_REQUEST);
+    }
+    
+    // Delete associated invoices first
+    await prisma.invoice.deleteMany({
+      where: { quotationId: id }
+    });
   }
 
   // Delete quotation

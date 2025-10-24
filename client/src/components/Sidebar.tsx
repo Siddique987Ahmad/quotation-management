@@ -130,7 +130,23 @@ const Icons = {
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
     </svg>
+  ),
+  Building: () => (
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"
+      />
+    </svg>
   )
+  
 };
 
 // Keep your existing menuItems array unchanged...
@@ -165,11 +181,18 @@ const menuItems: MenuItem[] = [
         requiredPermissions: [{ resource: 'clients', action: 'create' }]
       },
       {
+        id: 'departments-view',
+        label: 'View Departments',
+        path: '/departments',
+        icon: <Icons.Building />,
+        requiredPermissions: [{ resource: 'departments', action: 'read' }]
+      },
+      {
         id: 'clients-departments',
         label: 'Add Department',
         path: '/clients/departments',
         icon: <Icons.Settings />,
-        requiredPermissions: [{ resource: 'clients', action: 'read' }]
+        requiredPermissions: [{ resource: 'departments', action: 'read' }]
       }
     ]
   },
@@ -451,7 +474,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, className = '' }) =>
         }
       }
     });
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, expandedItems]);
 
   // Get dynamic company name
   const companyName = companySettings?.name || 'QuoteFlow';
@@ -477,13 +500,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, className = '' }) =>
         <div className="flex flex-col h-full">
           {/* UPDATED: Sidebar header with dynamic logo and company name */}
           <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <SidebarCompanyLogo className="w-8 h-8" />
-              </div>
-              <div className="ml-3">
-                <h2 className="text-lg font-semibold text-gray-900">{companyName}</h2>
-                <p className="text-xs text-gray-500">Quotation Management</p>
+            <div className="flex items-center w-full">
+              <div className="flex-shrink-0 w-full">
+                <SidebarCompanyLogo className="w-full h-12" />
               </div>
             </div>
             <button
@@ -497,7 +516,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, className = '' }) =>
           </div>
 
           {/* User info */}
-          {currentUser && (
+          {/* {currentUser && (
             <div className="px-4 py-3 border-b border-gray-200">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -511,11 +530,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, className = '' }) =>
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {getUserDisplayName(currentUser)}
                   </p>
-                  {/* <p className="text-xs text-gray-500 truncate">{currentUser.role}</p> */}
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Navigation - Keep this section unchanged */}
           <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">

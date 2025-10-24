@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Client } from '../../../types';
 import { CardSpinner } from '../../../components/LoadingSpinner';
 import { Icons } from '../../../components/Icons/Icons';
@@ -23,7 +22,6 @@ const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
   loading,
   error
 }) => {
-  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -295,34 +293,67 @@ const ClientDetailsView: React.FC<ClientDetailsViewProps> = ({
             <div className="space-y-4">
               {client.departments.map((clientDept, index) => (
                 <div key={clientDept.department.id} className="bg-gray-50 p-6 rounded-lg">
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Icons.Settings />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Side - Contact Information */}
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <Icons.Mail />
+                        <span className="ml-2">Contact Information</span>
+                      </h4>
+                      <dl className="space-y-3">
+                        <div>
+                          <dt className="text-sm font-medium text-gray-500">Department Name</dt>
+                          <dd className="text-sm text-gray-900">{clientDept.department.name}</dd>
+                        </div>
+                        {clientDept.department.email && (
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500">Email</dt>
+                            <dd className="text-sm text-gray-900">
+                              <a href={`mailto:${clientDept.department.email}`} className="text-blue-600 hover:text-blue-800">
+                                {clientDept.department.email}
+                              </a>
+                            </dd>
+                          </div>
+                        )}
+                        {clientDept.department.contactPerson && (
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500">Contact Person</dt>
+                            <dd className="text-sm text-gray-900">{clientDept.department.contactPerson}</dd>
+                          </div>
+                        )}
+                        {clientDept.department.phone && (
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                            <dd className="text-sm text-gray-900">
+                              <a href={`tel:${clientDept.department.phone}`} className="text-blue-600 hover:text-blue-800">
+                                {clientDept.department.phone}
+                              </a>
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-lg font-medium text-gray-900">{clientDept.department.name}</h4>
-                      {clientDept.department.contactPerson && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          <span className="font-medium">Contact:</span> {clientDept.department.contactPerson}
-                        </p>
-                      )}
-                      {clientDept.department.email && (
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Email:</span> {clientDept.department.email}
-                        </p>
-                      )}
-                      {clientDept.department.phone && (
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Phone:</span> {clientDept.department.phone}
-                        </p>
-                      )}
-                      {(clientDept.department.address || clientDept.department.city) && (
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Location:</span> {[clientDept.department.address, clientDept.department.city].filter(Boolean).join(', ')}
-                        </p>
-                      )}
+
+                    {/* Right Side - Location */}
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <Icons.MapPin />
+                        <span className="ml-2">Location</span>
+                      </h4>
+                      <dl className="space-y-3">
+                        {clientDept.department.address && (
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500">Address</dt>
+                            <dd className="text-sm text-gray-900">{clientDept.department.address}</dd>
+                          </div>
+                        )}
+                        {clientDept.department.city && (
+                          <div>
+                            <dt className="text-sm font-medium text-gray-500">City</dt>
+                            <dd className="text-sm text-gray-900">{clientDept.department.city}</dd>
+                          </div>
+                        )}
+                      </dl>
                     </div>
                   </div>
                 </div>

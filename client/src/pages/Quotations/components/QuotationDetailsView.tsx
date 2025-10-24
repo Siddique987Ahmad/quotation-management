@@ -211,26 +211,26 @@ const DepartmentEmailDropdown: React.FC<DepartmentEmailDropdownProps> = ({
             </div>
             
             {clientDepartments.map((clientDept) => (
-              <button
+                  <button
                 key={clientDept.department.id}
                 onClick={() => handleSendToDepartment(clientDept.department.id)}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-              >
-                <Icons.Settings />
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
+                    <Icons.Settings />
                 {clientDept.department.name}
-              </button>
-            ))}
-            
+                  </button>
+                ))}
+                
             {clientDepartments.length > 1 && (
-              <div className="border-t border-gray-100">
-                <button
-                  onClick={() => handleSendToDepartment()}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center font-medium"
-                >
-                  <Icons.Mail />
+                <div className="border-t border-gray-100">
+                  <button
+                    onClick={() => handleSendToDepartment()}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center font-medium"
+                  >
+                    <Icons.Mail />
                   Send to All Departments
-                </button>
-              </div>
+                  </button>
+                </div>
             )}
           </div>
         </div>

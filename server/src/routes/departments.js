@@ -17,7 +17,7 @@ router.use(authenticateToken);
  * @access  Private (Manager+)
  */
 router.get('/', [
-  requirePermission(PERMISSIONS.SETTINGS.READ),
+  requirePermission(PERMISSIONS.DEPARTMENTS.READ),
   async (req, res, next) => {
     try {
       const departments = await prisma.department.findMany({
@@ -52,7 +52,7 @@ router.get('/', [
  * @access  Private (Admin+)
  */
 router.post('/', [
-  requirePermission(PERMISSIONS.SETTINGS.CREATE),
+  requirePermission(PERMISSIONS.DEPARTMENTS.CREATE),
   [
     body('name')
       .trim()
@@ -162,7 +162,7 @@ router.post('/', [
  * @access  Private (Admin+)
  */
 router.put('/:id', [
-  requirePermission(PERMISSIONS.SETTINGS.UPDATE),
+  requirePermission(PERMISSIONS.DEPARTMENTS.UPDATE),
   [
     body('name')
       .optional()
@@ -237,40 +237,60 @@ router.put('/:id', [
         }
       }
 
-      // Update department
-      const updateData = {};
-      if (name !== undefined) updateData.name = name;
-      if (contactPerson !== undefined) updateData.contactPerson = contactPerson;
-      if (email !== undefined) updateData.email = email;
-      if (phone !== undefined) updateData.phone = phone;
-      if (address !== undefined) updateData.address = address;
-      if (city !== undefined) updateData.city = city;
-      if (clientId !== undefined) {
-        updateData.clients = clientId ? {
-          set: [{ id: clientId }]
-        } : {
-          set: []
-        };
-      }
+      // Update department with transaction to handle client relationships
+      const department = await prisma.$transaction(async (tx) => {
+        // Update department basic info
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (contactPerson !== undefined) updateData.contactPerson = contactPerson;
+        if (email !== undefined) updateData.email = email;
+        if (phone !== undefined) updateData.phone = phone;
+        if (address !== undefined) updateData.address = address;
+        if (city !== undefined) updateData.city = city;
 
-      const department = await prisma.department.update({
-        where: { id },
-        data: updateData,
-        include: {
-          clients: {
-            include: {
-              client: {
-                select: {
-                  id: true,
-                  companyName: true,
-                  contactPerson: true,
-                  email: true,
-                  isActive: true
+        // Update department
+        const updatedDepartment = await tx.department.update({
+          where: { id },
+          data: updateData
+        });
+
+        // Handle client relationships if clientId is provided
+        if (clientId !== undefined) {
+          // Delete existing client-department relationships
+          await tx.clientDepartment.deleteMany({
+            where: { departmentId: id }
+          });
+
+          // Create new client-department relationship if clientId is provided
+          if (clientId) {
+            await tx.clientDepartment.create({
+              data: {
+                clientId: clientId,
+                departmentId: id
+              }
+            });
+          }
+        }
+
+        // Return updated department with clients
+        return await tx.department.findUnique({
+          where: { id },
+          include: {
+            clients: {
+              include: {
+                client: {
+                  select: {
+                    id: true,
+                    companyName: true,
+                    contactPerson: true,
+                    email: true,
+                    isActive: true
+                  }
                 }
               }
             }
           }
-        }
+        });
       });
 
       res.json({ 
@@ -290,7 +310,7 @@ router.put('/:id', [
  * @access  Private (Admin+)
  */
 router.delete('/:id', [
-  requirePermission(PERMISSIONS.SETTINGS.DELETE),
+  requirePermission(PERMISSIONS.DEPARTMENTS.DELETE),
   async (req, res, next) => {
     try {
       const { id } = req.params;

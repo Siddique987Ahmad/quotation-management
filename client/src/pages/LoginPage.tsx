@@ -54,7 +54,7 @@ const LoginCompanyLogo: React.FC<{ className?: string }> = ({ className = "w-16 
     .slice(0, 2);
 
   return (
-    <div className={`rounded-xl flex items-center justify-center overflow-hidden shadow-lg ${className}`}>
+    <div className={`rounded-xl flex items-center justify-center overflow-hidden ${className}`}>
       {logoUrl ? (
         <img
           src={logoUrl}
@@ -228,8 +228,8 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <LoginCompanyLogo className="w-28 h-28" />
+        <div className="w-full">
+          <LoginCompanyLogo className="w-full h-36" />
         </div>
         <h1 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Welcome to {companyName}

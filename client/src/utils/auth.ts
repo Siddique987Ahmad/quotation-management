@@ -1140,6 +1140,13 @@ export const getUserPermissions = (): UserPermissions => {
       mark_paid: checkPermission('invoices:mark_paid'),
       update_tax_rates: checkPermission('invoices:update_tax_rates'),
     },
+    departments: {
+      read: checkPermission('departments:read'),
+      create: checkPermission('departments:create'),
+      update: checkPermission('departments:update'),
+      delete: checkPermission('departments:delete'),
+      manage_clients: checkPermission('departments:manage_clients'),
+    },
   };
 };
 

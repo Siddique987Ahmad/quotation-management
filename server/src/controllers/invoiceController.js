@@ -30,7 +30,7 @@ const INVOICE_TAX_TYPES = {
 //   // Build where clause based on user permissions
 //   const where = { id };
 //   const { hasPermission } = require('../middleware/permissions');
-//   if (!hasPermission(req.user.role, 'invoices:read_all')) {
+//   if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
 //     where.userId = req.user.id;
 //   }
 
@@ -172,7 +172,7 @@ const INVOICE_TAX_TYPES = {
 //   // Build where clause based on user permissions
 //   const where = { id };
 //   const { hasPermission } = require('../middleware/permissions');
-//   if (!hasPermission(req.user.role, 'invoices:read_all')) {
+//   if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
 //     where.userId = req.user.id;
 //   }
 
@@ -305,7 +305,7 @@ const sendInvoiceEmailWithTax = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -829,7 +829,7 @@ const getInvoices = asyncHandler(async (req, res) => {
   const where = {};
 
   // For regular users, only show their own invoices unless they have READ_ALL permission
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
   else if (userId) {
@@ -865,7 +865,7 @@ const getInvoices = asyncHandler(async (req, res) => {
   }
 
   // Filter by user (only for admins/managers)
-  if (userId && hasPermission(req.user.role, 'invoices:read_all')) {
+  if (userId && (await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = userId;
   }
 
@@ -973,7 +973,7 @@ const getInvoiceById = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -1707,7 +1707,7 @@ const updateInvoice = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -1834,7 +1834,7 @@ const updateInvoice = asyncHandler(async (req, res) => {
 //   // Build where clause based on user permissions
 //   const where = { id };
 //   const { hasPermission } = require('../middleware/permissions');
-//   if (!hasPermission(req.user.role, 'invoices:read_all')) {
+//   if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
 //     where.userId = req.user.id;
 //   }
 
@@ -1899,7 +1899,7 @@ const sendInvoiceEmail = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -2185,7 +2185,7 @@ const deleteInvoice = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -2225,7 +2225,7 @@ const getInvoiceStatistics = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = {};
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -2298,7 +2298,7 @@ const generateInvoicePDFController = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -2472,7 +2472,7 @@ const bulkUpdateTaxRates = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id: { in: invoiceIds } };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 
@@ -2536,7 +2536,7 @@ const bulkInvoiceActions = asyncHandler(async (req, res) => {
   // Build where clause based on user permissions
   const where = { id: { in: invoiceIds } };
   const { hasPermission } = require('../middleware/permissions');
-  if (!hasPermission(req.user.role, 'invoices:read_all')) {
+  if (!(await hasPermission(req.user.role, 'invoices:read_all'))) {
     where.userId = req.user.id;
   }
 

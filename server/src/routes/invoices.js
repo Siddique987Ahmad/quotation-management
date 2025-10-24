@@ -67,7 +67,7 @@ router.get('/dashboard/summary', [
 
     // Build where clause based on permissions
     const where = {};
-    if (!hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL)) {
+    if (!(await hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL))) {
       where.userId = req.user.id;
     }
 
@@ -180,7 +180,7 @@ router.get('/overdue/list', [
       dueDate: { lt: new Date() }
     };
 
-    if (!hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL)) {
+    if (!(await hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL))) {
       where.userId = req.user.id;
     }
 
@@ -263,7 +263,7 @@ router.get('/export/csv', [
 
     // Build where clause based on permissions
     const where = {};
-    if (!hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL)) {
+    if (!(await hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL))) {
       where.userId = req.user.id;
     }
 
@@ -560,7 +560,7 @@ router.get('/quotation/:quotationId', [
     const { hasPermission } = require('../middleware/permissions');
 
     const where = { quotationId };
-    if (!hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL)) {
+    if (!(await hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL))) {
       where.userId = req.user.id;
     }
 
@@ -617,7 +617,7 @@ router.get('/client/:clientId', [
     const { hasPermission } = require('../middleware/permissions');
 
     const where = { clientId };
-    if (!hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL)) {
+    if (!(await hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL))) {
       where.userId = req.user.id;
     }
 
@@ -729,7 +729,7 @@ router.get('/status/:status', [
     const { hasPermission } = require('../middleware/permissions');
 
     const where = { status };
-    if (!hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL)) {
+    if (!(await hasPermission(req.user.role, PERMISSIONS.INVOICES.READ_ALL))) {
       where.userId = req.user.id;
     }
 

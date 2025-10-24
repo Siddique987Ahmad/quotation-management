@@ -10,10 +10,10 @@ function App() {
     <Router>
       <CompanyProvider>
         <CurrencyProvider>
-        <div className="App">
-          <AppRoutes />
-        </div>
-         </CurrencyProvider>
+          <div className="App">
+            <AppRoutes />
+          </div>
+        </CurrencyProvider>
       </CompanyProvider>
     </Router>
   );

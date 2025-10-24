@@ -450,9 +450,10 @@ const handleStatusUpdate = async (quotation: Quotation, status: QuotationStatus)
         await loadQuotations(state.filters, state.searchQuery);
       }
       
-      console.log('Quotation deleted successfully');
-    } catch (error) {
+      toast.success('Quotation deleted successfully');
+    } catch (error: any) {
       console.error('Failed to delete quotation:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete quotation');
     }
   };
 
@@ -747,6 +748,7 @@ const handleBulkAction = async (action: 'approve' | 'reject' | 'delete') => {
             searchQuery={state.searchQuery}
             filters={state.filters}
             clients={state.clients.data || []}
+            quotations={quotations}
             selectedQuotationIds={state.selectedQuotationIds}
             bulkLoading={state.bulkLoading}
             onSearch={handleSearch}

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { isValidEmail, isValidPassword } from '../utils/auth';
 import { ButtonSpinner } from '../components/LoadingSpinner';
+import { useCompany } from '../contexts/CompanyContext';
 
 // =============================================================================
 // TYPES
@@ -29,6 +30,59 @@ interface PageState {
 }
 
 // =============================================================================
+// COMPANY LOGO COMPONENT
+// =============================================================================
+
+const ForgotPasswordCompanyLogo: React.FC<{ className?: string }> = ({ className = "w-16 h-16" }) => {
+  const { companySettings, loading } = useCompany();
+
+  if (loading) {
+    return (
+      <div className={`bg-gray-200 rounded-xl animate-pulse ${className}`} />
+    );
+  }
+
+  const logoUrl = companySettings?.logo
+    ? `${process.env.REACT_APP_API_URL?.replace('/api', '') || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'http://148.230.82.188:5000')}${companySettings.logo}?t=${Date.now()}`
+    : null;
+
+  const companyName = companySettings?.name || 'QuoteFlow';
+  const initials = companyName
+    .split(' ')
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <div className={`rounded-xl flex items-center justify-center overflow-hidden ${className}`}>
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt={`${companyName} Logo`}
+          className="w-full h-full object-contain bg-white"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent && !parent.querySelector('.logo-fallback')) {
+              const fallback = document.createElement('div');
+              fallback.className = 'logo-fallback w-full h-full bg-blue-600 flex items-center justify-center';
+              fallback.innerHTML = `<span class="text-white font-bold text-2xl">${initials}</span>`;
+              parent.appendChild(fallback);
+            }
+          }}
+        />
+      ) : (
+        <div className="w-full h-full bg-blue-600 flex items-center justify-center">
+          <span className="text-white font-bold text-2xl">{initials}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -36,6 +90,7 @@ const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { companySettings } = useCompany();
   
   const [state, setState] = useState<PageState>({
     mode: token ? 'reset' : 'forgot',
@@ -250,10 +305,8 @@ const ForgotPasswordPage: React.FC = () => {
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo and branding */}
-        <div className="flex justify-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-2xl">QF</span>
-          </div>
+        <div className="w-full">
+          <ForgotPasswordCompanyLogo className="w-full h-36" />
         </div>
         <h1 className="mt-6 text-center text-3xl font-bold text-gray-900">
           {state.mode === 'forgot' ? 'Forgot Password' : 'Reset Password'}
@@ -466,7 +519,7 @@ const ForgotPasswordPage: React.FC = () => {
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
-              QuoteFlow v1.0.0 - Quotation Management System
+              {companySettings?.name || 'QuoteFlow'} v1.0.0 - Quotation Management System
             </p>
           </div>
         </div>

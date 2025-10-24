@@ -599,7 +599,8 @@
 
 const { prisma } = require('../config/database');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
-const { STATUS_CODES, MESSAGES, PAGINATION } = require('../config/constants');
+const { STATUS_CODES, MESSAGES, PAGINATION, PERMISSIONS } = require('../config/constants');
+const clientDepartmentService = require('../services/clientDepartmentService');
 
 // Helper function to validate dynamic fields structure
 const validateDynamicFields = (customFields) => {
@@ -999,9 +1000,10 @@ const updateClient = asyncHandler(async (req, res) => {
   });
 });
 
-// Delete client (soft delete)
+// Delete client (hard delete for users with delete permission, soft delete otherwise)
 const deleteClient = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const { hasPermission } = require('../middleware/permissions');
 
   // Check if client exists
   const existingClient = await prisma.client.findUnique({
@@ -1022,9 +1024,63 @@ const deleteClient = asyncHandler(async (req, res) => {
     throw new AppError(MESSAGES.ERROR.NOT_FOUND, STATUS_CODES.NOT_FOUND);
   }
 
-  // Check if client has associated quotations or invoices
-  if (existingClient._count.quotations > 0 || existingClient._count.invoices > 0) {
-    // Soft delete - deactivate client instead of permanent deletion
+  // Check if user has delete permission
+  const hasDeletePermission = await hasPermission(req.user.role, PERMISSIONS.CLIENTS.DELETE);
+
+  if (hasDeletePermission) {
+    // User has delete permission - perform hard delete
+    if (existingClient._count.quotations > 0 || existingClient._count.invoices > 0) {
+      // First, delete associated invoices (they reference quotations)
+      await prisma.invoice.deleteMany({
+        where: { clientId: id }
+      });
+      
+      // Then delete quotations
+      await prisma.quotation.deleteMany({
+        where: { clientId: id }
+      });
+    }
+
+    // Delete client-department relationships
+    await prisma.clientDepartment.deleteMany({
+      where: { clientId: id }
+    });
+
+    // Delete the client
+    await prisma.client.delete({
+      where: { id }
+    });
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message: 'Client deleted successfully',
+      data: { client: { id, companyName: existingClient.companyName } }
+    });
+  } else {
+    // User doesn't have delete permission - perform soft delete
+    if (existingClient._count.quotations > 0 || existingClient._count.invoices > 0) {
+      // Soft delete - deactivate client instead of permanent deletion
+      const deactivatedClient = await prisma.client.update({
+        where: { id },
+        data: {
+          isActive: false,
+          updatedAt: new Date()
+        },
+        select: {
+          id: true,
+          companyName: true,
+          isActive: true
+        }
+      });
+
+      return res.status(STATUS_CODES.OK).json({
+        success: true,
+        message: 'Client deactivated successfully (has existing quotations/invoices)',
+        data: { client: deactivatedClient }
+      });
+    }
+
+    // If no associated records, we can perform soft delete
     const deactivatedClient = await prisma.client.update({
       where: { id },
       data: {
@@ -1040,30 +1096,10 @@ const deleteClient = asyncHandler(async (req, res) => {
 
     return res.status(STATUS_CODES.OK).json({
       success: true,
-      message: 'Client deactivated successfully (has existing quotations/invoices)',
+      message: 'Client deactivated successfully',
       data: { client: deactivatedClient }
     });
   }
-
-  // If no associated records, we can perform soft delete
-  const deactivatedClient = await prisma.client.update({
-    where: { id },
-    data: {
-      isActive: false,
-      updatedAt: new Date()
-    },
-    select: {
-      id: true,
-      companyName: true,
-      isActive: true
-    }
-  });
-
-  res.status(STATUS_CODES.OK).json({
-    success: true,
-    message: MESSAGES.SUCCESS.DELETED,
-    data: { client: deactivatedClient }
-  });
 });
 
 // Toggle client status
@@ -1378,7 +1414,6 @@ const duplicateClient = asyncHandler(async (req, res) => {
 // Add client to department
 const addClientToDepartment = asyncHandler(async (req, res) => {
   const { clientId, departmentId } = req.params;
-  const { clientDepartmentService } = require('../services/clientDepartmentService');
 
   const result = await clientDepartmentService.addClientToDepartment(clientId, departmentId);
 
@@ -1392,7 +1427,6 @@ const addClientToDepartment = asyncHandler(async (req, res) => {
 // Remove client from department
 const removeClientFromDepartment = asyncHandler(async (req, res) => {
   const { clientId, departmentId } = req.params;
-  const { clientDepartmentService } = require('../services/clientDepartmentService');
 
   await clientDepartmentService.removeClientFromDepartment(clientId, departmentId);
 
@@ -1405,7 +1439,6 @@ const removeClientFromDepartment = asyncHandler(async (req, res) => {
 // Get client departments
 const getClientDepartments = asyncHandler(async (req, res) => {
   const { clientId } = req.params;
-  const { clientDepartmentService } = require('../services/clientDepartmentService');
 
   const departments = await clientDepartmentService.getClientDepartments(clientId);
 
@@ -1420,7 +1453,6 @@ const getClientDepartments = asyncHandler(async (req, res) => {
 const updateClientDepartments = asyncHandler(async (req, res) => {
   const { clientId } = req.params;
   const { departmentIds } = req.body;
-  const { clientDepartmentService } = require('../services/clientDepartmentService');
 
   if (!Array.isArray(departmentIds)) {
     throw new AppError('departmentIds must be an array', STATUS_CODES.BAD_REQUEST);

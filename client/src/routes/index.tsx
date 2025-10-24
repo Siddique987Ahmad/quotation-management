@@ -1,11 +1,11 @@
-// routes/index.tsx - Updated with ClientsPage
+// routes/index.tsx - Original version
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "../pages/LoginPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import DashboardPage from "../pages/DashboardPage";
 import UsersPage from "../pages/Users/UsersPage";
-import ClientsPage from "../pages/Clients/ClientsPage"; // Add this import
+import ClientsPage from "../pages/Clients/ClientsPage";
 import QuotationsPage from "../pages/Quotations/QuotationsPage";
 import Layout from "../components/Layout";
 import ProtectedRoute from "../components/ProtectedRoute";
@@ -16,7 +16,8 @@ import SystemSettingsPage from "../pages/SystemSettings/SystemSettingsPage";
 import EmailTemplates from "../pages/EmailTemplate/EmailTemplates";
 import ProfilePage from "../pages/ProfilePage";
 import RolePermissionManagement from "../pages/RolePermissionManagement";
-// import UserPermissionManagement from '../pages/UserPermissions';
+import ViewDepartmentsPage from "../pages/Departments/ViewDepartmentsPage";
+import AddDepartmentPage from "../pages/Departments/AddDepartmentPage";
 
 const AppRoutes: React.FC = () => {
   const isAuth = isAuthenticated();
@@ -79,7 +80,6 @@ const AppRoutes: React.FC = () => {
         />
 
         {/* Edit Client - Users with update permission can edit clients */}
-        {/* Note: This route supports both /clients/:id/edit and /clients/:id?edit=true */}
         <Route
           path="clients/:id/edit"
           element={
@@ -91,14 +91,26 @@ const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Department Management - Users with clients permission can manage departments */}
+        {/* View Departments - Users with departments read permission can view departments */}
+        <Route
+          path="departments"
+          element={
+            <ProtectedRoute
+              requiredPermissions={[{ resource: "departments", action: "read" }]}
+            >
+              <ViewDepartmentsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Add Department - Users with departments permission can create departments */}
         <Route
           path="clients/departments"
           element={
             <ProtectedRoute
-              requiredPermissions={[{ resource: "clients", action: "read" }]}
+              requiredPermissions={[{ resource: "departments", action: "create" }]}
             >
-              <ClientsPage />
+              <AddDepartmentPage />
             </ProtectedRoute>
           }
         />
@@ -192,18 +204,6 @@ const AppRoutes: React.FC = () => {
           }
         />
 
-        {/* Reports - Managers and above only */}
-        {/* <Route path="reports" element={
-          <ProtectedRoute requiredRole="MANAGER">
-            <ReportsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="reports/:type" element={
-          <ProtectedRoute requiredRole="MANAGER">
-            <ReportsPage />
-          </ProtectedRoute>
-        } /> */}
-
         {/* User/Employee Management - Admins only */}
         <Route
           path="users"
@@ -241,7 +241,6 @@ const AppRoutes: React.FC = () => {
         />
 
         {/* Edit User - Only Admins can edit users */}
-        {/* Note: This route supports both /users/:id/edit and /users/:id?edit=true */}
         <Route
           path="users/:id/edit"
           element={
@@ -252,12 +251,6 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           }
         />
-
-        {/* <Route path="users/permissions/available" element={
-          <ProtectedRoute requiredPermissions={[{ resource: 'users', action: 'manage_permissions' }]}>
-            <UserPermissionManagement />
-          </ProtectedRoute>
-        } /> */}
 
         {/* Settings - Admins only */}
         <Route

@@ -667,7 +667,7 @@ const sendPasswordResetEmail = async (email, resetToken, userFirstName = 'User')
       if (serverIP) {
         baseUrl = `http://${serverIP}:3000`;
         console.log('🖥️ Server detected - using IP:', baseUrl);
-      } else {
+    } else {
         // Fallback to your known server IP
         baseUrl = 'http://148.230.82.188:3000';
         console.log('🔄 Using fallback server IP:', baseUrl);
