@@ -1786,13 +1786,21 @@ const bulkQuotationActions = asyncHandler(async (req, res) => {
                 return parseFloat(value) || defaultValue;
               };
 
+              // const formatCurrency = (amount) => {
+              //   return new Intl.NumberFormat('en-US', {
+              //     style: 'currency',
+              //     currency: 'USD',
+              //     minimumFractionDigits: 2,
+              //   }).format(toNumber(amount));
+              // };
               const formatCurrency = (amount) => {
-                return new Intl.NumberFormat('en-US', {
+                return new Intl.NumberFormat('en-PK', {
                   style: 'currency',
-                  currency: 'USD',
+                  currency: 'PKR',
                   minimumFractionDigits: 2,
-                }).format(toNumber(amount));
+                }).format(Number(amount || 0));
               };
+              
 
               const getClientName = (clientData) => {
                 if (clientData.contactPerson && !(/^\d{8,}$/.test(clientData.contactPerson.replace(/[\s\-\(\)\+]/g, '')))) {
@@ -2116,13 +2124,22 @@ const bulkQuotationActions = asyncHandler(async (req, res) => {
           return parseFloat(value) || defaultValue;
         };
 
+        // const formatCurrency = (amount) => {
+        //   return new Intl.NumberFormat('en-US', {
+        //     style: 'currency',
+        //     currency: 'USD',
+        //     minimumFractionDigits: 2,
+        //   }).format(toNumber(amount));
+        // };
+
         const formatCurrency = (amount) => {
-          return new Intl.NumberFormat('en-US', {
+          return new Intl.NumberFormat('en-PK', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'PKR',
             minimumFractionDigits: 2,
-          }).format(toNumber(amount));
+          }).format(Number(amount || 0));
         };
+        
 
         const getClientName = (clientData) => {
           if (clientData.contactPerson && !(/^\d{8,}$/.test(clientData.contactPerson.replace(/[\s\-\(\)\+]/g, '')))) {

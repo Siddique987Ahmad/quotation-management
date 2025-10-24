@@ -1002,15 +1002,27 @@ const getDefaultSampleData = (templateKey) => {
 };
 
 // Helper functions
+// const formatCurrency = (amount) => {
+//   if (amount === null || amount === undefined) return '$0.00';
+  
+//   const numAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
+//   return new Intl.NumberFormat('en-US', {
+//     style: 'currency',
+//     currency: 'USD',
+//     minimumFractionDigits: 2,
+//   }).format(numAmount);
+// };
+
 const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return '$0.00';
+  if (amount === null || amount === undefined) return '₨0.00';
   
   const numAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-PK', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'PKR',
     minimumFractionDigits: 2,
   }).format(numAmount);
 };
+
 
 module.exports = router;
