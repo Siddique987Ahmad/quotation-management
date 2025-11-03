@@ -267,7 +267,7 @@ const menuItems: MenuItem[] = [
   },
   {
     id: 'users',
-    label: 'Employee Management',
+    label: 'User Management',
     path: '/users',
     icon: <Icons.Users />,
     requiresAuth: true,
@@ -275,7 +275,7 @@ const menuItems: MenuItem[] = [
     children: [
       {
         id: 'users-all',
-        label: 'All Employees',
+        label: 'All Users',
         path: '/users',
         icon: <Icons.Users />
       },
