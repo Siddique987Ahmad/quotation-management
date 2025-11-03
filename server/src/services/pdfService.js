@@ -209,12 +209,20 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
     }) : 'N/A';
   };
 
+  // const formatCurrency = (amount) => {
+  //   return `₨${parseFloat(amount || 0).toLocaleString('en-PK', {
+  //     minimumFractionDigits: 2,
+  //     maximumFractionDigits: 2
+  //   })}`;
+  // };
+
   const formatCurrency = (amount) => {
-    return `₨${parseFloat(amount || 0).toLocaleString('en-PK', {
+    return `$${parseFloat(amount || 0).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     })}`;
   };
+  
 
   const convertNumberToWords = (num) => {
     // Handle decimal numbers by rounding to nearest integer
@@ -987,14 +995,24 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                             subtotal = parseFloat(invoiceData.subtotal) || 0;
                           }
                           
-                          const tax = subtotal * 0.16;
+                          // Derive total tax percentage (GST + PST) if available; otherwise infer from amounts
+                          const gstPerc = parseFloat(invoiceData?.gstPercentage) || 0;
+                          const pstPerc = parseFloat(invoiceData?.pstPercentage) || 0;
+                          let totalTaxPerc = gstPerc + pstPerc;
+                          const gstAmt = parseFloat(invoiceData?.gstAmount) || 0;
+                          const pstAmt = parseFloat(invoiceData?.pstAmount) || 0;
+                          if (!totalTaxPerc && subtotal > 0) {
+                            const inferred = ((gstAmt + pstAmt) / subtotal) * 100;
+                            totalTaxPerc = Number.isFinite(inferred) ? inferred : 0;
+                          }
+                          const tax = subtotal * (totalTaxPerc / 100);
                           const total = subtotal + tax;
                           
                           return `
                             <div style="display: flex; align-items: stretch;">
                                 <div style="display: flex; flex-direction: column; justify-content: space-around; padding-right: 10px;">
                                     <div style="padding: 8px 0; font-size: 12px; font-weight: bold; visibility: hidden;">Subtotal</div>
-                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">PRA @ 16%:</div>
+                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">PRA @ ${Number(totalTaxPerc || 0).toFixed(2)}%:</div>
                                     <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">Total Due By [Date]:</div>
                                 </div>
                                 <div class="summary-box" style="border: 2px solid #000; background: #fff; flex: 1;">
@@ -1239,12 +1257,19 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 `)
     .join('');
 
+  // const formatCurrency = (amount) => {
+  //   return `₨${parseFloat(amount || 0).toLocaleString('en-PK', {
+  //     minimumFractionDigits: 2,
+  //     maximumFractionDigits: 2
+  //   })}`;
+  // };
   const formatCurrency = (amount) => {
-    return `₨${parseFloat(amount || 0).toLocaleString('en-PK', {
+    return `$${parseFloat(amount || 0).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     })}`;
   };
+  
   
 
   const getStatusColor = (status) => {
@@ -1745,8 +1770,13 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                         <td class="label">PST:</td>
                         <td class="amount">${formatCurrency(quotationData.pstAmount || 0)}</td>
                     </tr>
+                    <tr>
+                        <td class="label">GST:</td>
+                        <td class="amount">${formatCurrency(quotationData.gstAmount || 0)}</td>
+                    </tr>
+                    
                     <tr class="highlight">
-                        <td class="label">G.Total (PKR):</td>
+                        <td class="label">G.Total:</td>
                         <td class="amount">${formatCurrency(quotationData.totalAmount)}</td>
                     </tr>
                 </table>

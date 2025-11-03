@@ -299,7 +299,7 @@ const InvoiceDetailsView: React.FC<InvoiceDetailsViewProps> = ({
           <div className="border-t pt-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Status Actions</h3>
             <div className="flex space-x-4">
-              {invoice.status === InvoiceStatus.PENDING && (
+              {/* {invoice.status === InvoiceStatus.PENDING && (
                 <button
                   onClick={() => onStatusUpdate(InvoiceStatus.SENT)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
@@ -307,7 +307,7 @@ const InvoiceDetailsView: React.FC<InvoiceDetailsViewProps> = ({
                   <Icons.Mail />
                   <span className="ml-2">Mark as Sent</span>
                 </button>
-              )}
+              )} */}
               
               <button
                 onClick={() => onStatusUpdate(InvoiceStatus.PAID)}
