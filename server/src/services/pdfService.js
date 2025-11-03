@@ -784,7 +784,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
         </style>
     </head>
     <body>
-        <div id="page-content" class="container" style="transform-origin: top left;">
+        <div class="container">
             <!-- Header -->
             <div class="header">
                 <div class="logo-section">
@@ -1102,25 +1102,6 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 </div>
             </div>
         </div>
-        <script>
-          (function() {
-            try {
-              var content = document.getElementById('page-content');
-              if (!content) return;
-              // A4 printable height = 11.69in minus top+bottom margins (inches). Margins: 0.5in + 0.5in = 1.0in
-              var printableHeightIn = 11.69 - 1.0;
-              var pxPerIn = 96; // Chromium CSS pixel density for print
-              var maxHeightPx = printableHeightIn * pxPerIn;
-              var contentHeight = content.scrollHeight;
-              var scale = Math.min(1, maxHeightPx / (contentHeight || 1));
-              content.style.transform = 'scale(' + scale + ')';
-              // Expand width inversely so layout fits the page width after scaling
-              content.style.width = (100 / scale) + '%';
-            } catch (e) {
-              console && console.log && console.log('Auto-fit error:', e.message);
-            }
-          })();
-        </script>
     </body>
     </html>
   `;
@@ -1661,7 +1642,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
         </style>
     </head>
     <body>
-        <div id="page-content" class="container" style="transform-origin: top left;">
+        <div class="container">
             <!-- Header with Logo and Company Info -->
             <div class="header">
                 <div class="logo-section">
@@ -1814,23 +1795,6 @@ ${termsHTML}
                 <p>This is a computer generated document and doesn't need any signature or stamp</p>
             </div>
         </div>
-        <script>
-          (function() {
-            try {
-              var content = document.getElementById('page-content');
-              if (!content) return;
-              var printableHeightIn = 11.69 - 1.0;
-              var pxPerIn = 96;
-              var maxHeightPx = printableHeightIn * pxPerIn;
-              var contentHeight = content.scrollHeight;
-              var scale = Math.min(1, maxHeightPx / (contentHeight || 1));
-              content.style.transform = 'scale(' + scale + ')';
-              content.style.width = (100 / scale) + '%';
-            } catch (e) {
-              console && console.log && console.log('Auto-fit error:', e.message);
-            }
-          })();
-        </script>
     </body>
     </html>
   `;
