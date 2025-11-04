@@ -1711,8 +1711,8 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                         </div>
                     </td>
                     <td>
-                        <div class="section-title">From: -</div>
                         <div class="detail-row">
+                        <div class="detail-label">From:</div>
                             <div class="detail-value">${companyData.name || 'Your Company'}</div>
                         </div>
                         <div class="detail-row">
