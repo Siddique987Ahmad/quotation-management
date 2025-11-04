@@ -1437,7 +1437,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 text-align: center;
                 font-size: 16px;
                 font-weight: bold;
-                margin: 10px 0;
+                
                 background: #f3f4f6;
                 padding: 4px;
                 border: 1px solid #000;
