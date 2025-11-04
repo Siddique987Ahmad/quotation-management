@@ -1447,11 +1447,10 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 width: 100%;
                 border-collapse: collapse;
                 margin-bottom: 15px;
-                border: 1px solid #000;
+               
             }
             
             .quotation-header-table td {
-                border: 1px solid #000;
                 padding: 8px;
                 vertical-align: top;
                 width: 50%;
