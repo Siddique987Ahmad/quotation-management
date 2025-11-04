@@ -1447,10 +1447,11 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 width: 100%;
                 border-collapse: collapse;
                 margin-bottom: 15px;
-               
+                border: 1px solid #000;
             }
             
             .quotation-header-table td {
+                border: 1px solid #000;
                 padding: 8px;
                 vertical-align: top;
                 width: 50%;
@@ -1461,7 +1462,6 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 background: #f3f4f6;
                 text-align: center;
                 padding: 8px;
-                border-bottom: 1px solid #000;
                 font-size: 14px;
             }
             
@@ -1469,7 +1469,6 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 display: flex;
                 align-items: center;
                 padding: 4px 8px;
-                border-bottom: 1px solid #000;
                 min-height: 24px;
             }
             
