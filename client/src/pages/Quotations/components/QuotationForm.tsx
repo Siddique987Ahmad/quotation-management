@@ -117,13 +117,18 @@ const ScopeOfWorkField: React.FC<{
                     min="1"
                   />
                 </td>
-                <td className="px-3 py-2 border-b border-gray-300">
-                  <input
-                    type="text"
+                <td className="px-3 py-2 border-b border-gray-300 align-top">
+                  <textarea
                     value={item.description}
                     onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    onInput={(e) => {
+                      const el = e.currentTarget;
+                      el.style.height = 'auto';
+                      el.style.height = `${el.scrollHeight}px`;
+                    }}
                     placeholder="Enter description"
+                    rows={2}
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm resize-y overflow-hidden leading-5"
                   />
                 </td>
                 <td className="px-3 py-2 border-b border-gray-300">
