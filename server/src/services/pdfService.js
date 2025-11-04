@@ -1182,8 +1182,8 @@ const generateScopeOfWorkSection = (quotationData) => {
               <th>Description</th>
               <th style="width: 60px;">QTY</th>
               <th style="width: 80px;">Unit</th>
-              <th style="width: 100px;">Price (PKR)</th>
-              <th style="width: 100px;">Total Price (PKR)</th>
+              <th style="width: 100px;">Price (US $)</th>
+              <th style="width: 100px;">Total Price (US $)</th>
             </tr>
           </thead>
           <tbody>
@@ -1677,7 +1677,6 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             <table class="quotation-header-table">
                 <tr>
                     <td>
-                        <div class="section-title">Customer: -</div>
                         <div class="detail-row">
                             <div class="detail-label">Customer:</div>
                             <div class="detail-value">${clientData.companyName || '-'}</div>
@@ -1714,7 +1713,6 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                     <td>
                         <div class="section-title">From: -</div>
                         <div class="detail-row">
-                            <div class="detail-label">From:</div>
                             <div class="detail-value">${companyData.name || 'Your Company'}</div>
                         </div>
                         <div class="detail-row">
