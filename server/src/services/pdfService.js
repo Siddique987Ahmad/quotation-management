@@ -1529,7 +1529,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 font-weight: bold;
                 text-align: center;
                 padding: 4px;
-                margin: 10px 0 5px 0;
+                border: 1px solid #000;
                 font-size: 12px;
             }
             
