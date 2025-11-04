@@ -1754,7 +1754,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             <!-- Totals -->
             <div class="totals-section">
                 <table class="totals-table">
-                    <tr>
+                    <tr class="highlight">
                         <td class="label">Sub Total:</td>
                         <td class="amount">${formatCurrency(quotationData.subtotal)}</td>
                     </tr>
@@ -1771,7 +1771,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                         <td class="amount">${formatCurrency(quotationData.gstAmount || 0)}</td>
                     </tr>
                     
-                    <tr class="highlight">
+                    <tr>
                         <td class="label">G.Total:</td>
                         <td class="amount">${formatCurrency(quotationData.totalAmount)}</td>
                     </tr>
