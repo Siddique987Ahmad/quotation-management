@@ -1440,7 +1440,6 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 
                 background: #A9A9A9;
                 padding: 3px;
-                border: 1px solid #000;
             }
             
             .quotation-header-table {
