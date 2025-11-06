@@ -1363,7 +1363,6 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 justify-content: space-between;
                 align-items: flex-start;
                 margin-bottom: 8px;
-                border-bottom: 1px solid #000;
                 padding-bottom: 4px;
             }
             
@@ -1440,6 +1439,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 
                 background: #A9A9A9;
                 padding: 3px;
+                border: 1px solid #000;
             }
             
             .quotation-header-table {
