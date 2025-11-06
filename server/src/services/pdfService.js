@@ -1434,10 +1434,10 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             .quotation-title {
                 text-align: center;
-                font-size: 12px;
+                font-size: 16px;
                 font-weight: bold;
                 
-                background: #A9A9A9;
+                background: #D3D3D3;
                 padding: 6px;
                 border: 1px solid #000;
             }
