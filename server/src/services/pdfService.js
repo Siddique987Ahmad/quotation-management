@@ -1438,7 +1438,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 font-weight: bold;
                 
                 background: #A9A9A9;
-                padding: 3px;
+                padding: 6px;
                 border: 1px solid #000;
             }
             
@@ -1668,7 +1668,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             </div>
             
             <!-- Quotation Title -->
-            <div class="quotation-title">QUOTATION</div>
+            <div class="quotation-title">Quotation</div>
             
             <!-- Quotation Header Table -->
             <table class="quotation-header-table">
