@@ -1346,8 +1346,8 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             body {
                 font-family: Arial, sans-serif;
-                font-size: 10px;
-                line-height: 1.2;
+                font-size: 8px;
+                line-height: 1.1;
                 color: #000;
                 background: #fff;
             }
@@ -1355,16 +1355,16 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             .container {
                 max-width: 800px;
                 margin: 0 auto;
-                padding: 10px;
+                padding: 6px;
             }
             
             .header {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
-                margin-bottom: 15px;
+                margin-bottom: 8px;
                 border-bottom: 1px solid #000;
-                padding-bottom: 8px;
+                padding-bottom: 4px;
             }
             
             .logo-section {
@@ -1375,30 +1375,30 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             }
             
             .logo {
-                width: 200px;
+                width: 150px;
                 height: auto;
-                margin: 0 0 8px 0;
+                margin: 0 0 4px 0;
                 border: none;
             }
             
             .logo-placeholder {
-                width: 200px;
-                height: 60px;
-                margin: 0 0 8px 0;
+                width: 150px;
+                height: 45px;
+                margin: 0 0 4px 0;
                 border: 1px solid #ddd;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 background: #f5f5f5;
-                font-size: 10px;
+                font-size: 8px;
                 text-align: center;
                 color: #666;
             }
             
             .tagline {
-                font-size: 14px;
+                font-size: 10px;
                 font-weight: bold;
-                margin-top: 8px;
+                margin-top: 4px;
             }
             
             .company-details {
@@ -1411,19 +1411,19 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             }
             
             .company-name {
-                font-size: 20px;
+                font-size: 14px;
                 font-weight: bold;
-                margin-bottom: 6px;
+                margin-bottom: 3px;
                 color: #1f6feb;
             }
             
             .company-info {
-                font-size: 12px;
-                line-height: 1.4;
+                font-size: 9px;
+                line-height: 1.2;
                 color: #000;
                 display: flex;
                 justify-content: flex-end;
-                gap: 8px;
+                gap: 6px;
                 align-items: center;
                 font-weight: 600;
                 white-space: nowrap;
@@ -1435,24 +1435,24 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             .quotation-title {
                 text-align: center;
-                font-size: 16px;
+                font-size: 12px;
                 font-weight: bold;
                 
                 background: #A9A9A9;
-                padding: 4px;
+                padding: 3px;
                 border: 1px solid #000;
             }
             
             .quotation-header-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 15px;
+                margin-bottom: 8px;
                 border: 1px solid #000;
             }
             
             .quotation-header-table td {
                 border: 1px solid #000;
-                padding: 8px;
+                padding: 4px;
                 vertical-align: top;
                 width: 50%;
             }
@@ -1461,15 +1461,15 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 font-weight: bold;
                 background: #f3f4f6;
                 text-align: center;
-                padding: 8px;
-                font-size: 14px;
+                padding: 4px;
+                font-size: 10px;
             }
             
             .detail-row {
                 display: flex;
                 align-items: center;
-                padding: 4px 8px;
-                min-height: 24px;
+                padding: 2px 4px;
+                min-height: 16px;
             }
             
             .detail-row:last-child {
@@ -1478,30 +1478,30 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             .detail-label {
                 font-weight: bold;
-                min-width: 120px;
+                min-width: 100px;
                 text-decoration: underline;
-                font-size: 12px;
+                font-size: 9px;
             }
             
             .detail-value {
                 text-decoration: underline;
-                margin-left: 10px;
+                margin-left: 6px;
                 flex: 1;
-                font-size: 12px;
+                font-size: 9px;
                 text-align: right;
             }
             
             .quotation-details {
                 background: #f5f5f5;
                 border: 1px solid #ccc;
-                padding: 15px;
-                margin-bottom: 20px;
+                padding: 8px;
+                margin-bottom: 10px;
             }
             
             .details-row {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 8px;
+                margin-bottom: 4px;
             }
             
             .details-row:last-child {
@@ -1510,7 +1510,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             .details-label {
                 font-weight: bold;
-                width: 120px;
+                width: 100px;
             }
             
             .details-value {
@@ -1518,9 +1518,9 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             }
             
             .subject {
-                font-size: 14px;
+                font-size: 10px;
                 font-weight: bold;
-                margin: 15px 0;
+                margin: 8px 0;
             }
             
             .scope-of-work-header {
@@ -1528,31 +1528,31 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 color: #000;
                 font-weight: bold;
                 text-align: center;
-                padding: 4px;
+                padding: 3px;
                 border: 1px solid #000;
-                font-size: 12px;
+                font-size: 9px;
             }
             
             .scope-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 10px;
+                margin-bottom: 6px;
             }
             
             .scope-table th {
                 background: #f3f4f6;
                 border: 1px solid #000;
-                padding: 4px 6px;
+                padding: 3px 4px;
                 text-align: center;
                 font-weight: bold;
-                font-size: 9px;
+                font-size: 8px;
             }
             
             .scope-table td {
                 border: 1px solid #000;
-                padding: 4px 6px;
+                padding: 3px 4px;
                 text-align: center;
-                font-size: 9px;
+                font-size: 8px;
             }
             
             .scope-table .description {
@@ -1562,17 +1562,17 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             .totals-section {
                 display: flex;
                 justify-content: flex-end;
-                margin-bottom: 10px;
+                margin-bottom: 6px;
             }
             
             .totals-table {
-                width: 250px;
+                width: 220px;
                 border-collapse: collapse;
             }
             
             .totals-table td {
                 border: 1px solid #000;
-                padding: 5px 8px;
+                padding: 3px 6px;
             }
             
             .totals-table .label {
@@ -1590,51 +1590,51 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             }
             
             .terms-section {
-                margin-bottom: 10px;
+                margin-bottom: 6px;
             }
             
             .terms-title {
-                font-size: 12px;
+                font-size: 9px;
                 font-weight: bold;
-                margin-bottom: 8px;
+                margin-bottom: 4px;
                 text-decoration: underline;
             }
             
             .terms-list {
                 display: flex;
                 flex-direction: column;
-                gap: 4px;
+                gap: 2px;
             }
             
             .terms-item {
                 display: flex;
                 align-items: center;
-                padding: 5px 0;
+                padding: 3px 0;
                 border-bottom: 1px solid #e5e7eb;
             }
             
             .terms-item.highlight {
                 background: #ffff00;
-                padding: 8px;
-                border-radius: 4px;
+                padding: 4px;
+                border-radius: 2px;
             }
             
             .terms-label {
                 font-weight: bold;
-                min-width: 120px;
+                min-width: 100px;
                 text-decoration: underline;
             }
             
             .terms-value {
                 text-decoration: underline;
-                margin-left: 10px;
+                margin-left: 6px;
             }
             
             .footer {
                 text-align: center;
-                font-size: 10px;
-                margin-top: 30px;
-                padding-top: 10px;
+                font-size: 8px;
+                margin-top: 15px;
+                padding-top: 6px;
                 border-top: 1px solid #ccc;
             }
         </style>
