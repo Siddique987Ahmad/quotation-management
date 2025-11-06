@@ -1423,7 +1423,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 color: #000;
                 display: flex;
                 justify-content: flex-end;
-                gap: 16px;
+                gap: 8px;
                 align-items: center;
                 font-weight: 600;
                 white-space: nowrap;
