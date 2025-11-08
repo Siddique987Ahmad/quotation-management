@@ -19,49 +19,6 @@ const getSignatureBase64 = async () => {
 // Initialize browser instance
 let browser;
 
-// Helper function to find system Chrome/Chromium executable
-const findSystemChrome = () => {
-  const fs = require('fs');
-  const { execSync } = require('child_process');
-  
-  // Common Chrome/Chromium paths on Linux
-  const possiblePaths = [
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/snap/bin/chromium',
-    '/usr/local/bin/chrome',
-    '/usr/local/bin/chromium',
-    process.env.CHROME_PATH,
-    process.env.CHROMIUM_PATH
-  ].filter(Boolean);
-  
-  // Try to find via which command
-  try {
-    const chromePath = execSync('which google-chrome 2>/dev/null', { encoding: 'utf8' }).trim();
-    if (chromePath && fs.existsSync(chromePath)) {
-      return chromePath;
-    }
-  } catch (e) {}
-  
-  try {
-    const chromiumPath = execSync('which chromium-browser 2>/dev/null', { encoding: 'utf8' }).trim();
-    if (chromiumPath && fs.existsSync(chromiumPath)) {
-      return chromiumPath;
-    }
-  } catch (e) {}
-  
-  // Check common paths
-  for (const chromePath of possiblePaths) {
-    if (chromePath && fs.existsSync(chromePath)) {
-      return chromePath;
-    }
-  }
-  
-  return null;
-};
-
 // Get or create browser instance with retry logic
 const getBrowser = async (retryCount = 0) => {
   try {
@@ -77,9 +34,7 @@ const getBrowser = async (retryCount = 0) => {
         fs.mkdirSync(customTempDir, { recursive: true });
       }
       
-      // Try to find system Chrome as fallback
-      const systemChrome = findSystemChrome();
-      const launchOptions = {
+      browser = await puppeteer.launch({
         headless: true,
         userDataDir: customTempDir,
         args: [
@@ -144,79 +99,12 @@ const getBrowser = async (retryCount = 0) => {
         handleSIGINT: false,
         handleSIGTERM: false,
         handleSIGHUP: false
-      };
-      
-      // Use system Chrome if available (will be set on retry if needed)
-      if (systemChrome) {
-        console.log(`🔍 System Chrome found at: ${systemChrome} (will use if needed)`);
-      }
-      
-      browser = await puppeteer.launch(launchOptions);
+      });
       console.log('✅ Browser launched successfully');
     }
     return browser;
   } catch (error) {
     console.error(`❌ Browser launch failed (attempt ${retryCount + 1}):`, error.message);
-    
-    // If Chrome not found, try system Chrome on first retry
-    if (error.message.includes('Could not find Chrome')) {
-      const systemChrome = findSystemChrome();
-      if (systemChrome && retryCount === 0) {
-        console.log(`🔧 Retrying with system Chrome at: ${systemChrome}`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Retry with system Chrome
-        try {
-          const os = require('os');
-          const path = require('path');
-          const customTempDir = path.join(os.tmpdir(), 'puppeteer-custom');
-          browser = await puppeteer.launch({
-            executablePath: systemChrome,
-            headless: true,
-            userDataDir: customTempDir,
-            args: [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-gpu',
-              '--disable-web-security',
-              '--disable-features=VizDisplayCompositor',
-              '--no-first-run',
-              '--disable-extensions',
-              '--disable-default-apps',
-              '--disable-sync',
-              '--disable-translate',
-              '--hide-scrollbars',
-              '--mute-audio',
-              '--no-default-browser-check',
-              '--disable-blink-features=AutomationControlled'
-            ],
-            timeout: 30000,
-            protocolTimeout: 30000,
-            handleSIGINT: false,
-            handleSIGTERM: false,
-            handleSIGHUP: false
-          });
-          console.log('✅ Browser launched successfully with system Chrome');
-          return browser;
-        } catch (systemChromeError) {
-          console.error(`❌ System Chrome also failed:`, systemChromeError.message);
-        }
-      } else if (!systemChrome && retryCount === 0) {
-        console.error(`
-⚠️  Chrome/Chromium not found. Please install it using one of these methods:
-
-For Ubuntu/Debian:
-  sudo apt-get update
-  sudo apt-get install -y chromium-browser
-
-Or install via Puppeteer:
-  cd server && npx puppeteer browsers install chrome
-
-Or set CHROME_PATH environment variable to point to your Chrome executable.
-        `);
-      }
-    }
-    
     if (retryCount < 2) {
       console.log('🔄 Retrying browser launch...');
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -401,7 +289,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
   };
 
   // Helper function to get logo URL (absolute URL or inline data URI)
-  const getLogoUrl = async () => {
+  const getLogoUrl = () => {
     try {
       if (!companyData.logo) {
         return null;
@@ -418,52 +306,30 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
         : `uploads/${companyData.logo}`.replace(/^\//, '');
 
       // Try to inline from local filesystem to avoid CORS/network issues in Puppeteer
-      // Try multiple possible paths for better localhost compatibility
-      const possibleDirs = [
-        path.resolve(__dirname, '../public'),
-        path.resolve(__dirname, '../../public'),
-        path.resolve(process.cwd(), 'server/public'),
-        path.resolve(process.cwd(), 'public')
-      ];
-      
-      let filePath = null;
-      for (const publicDir of possibleDirs) {
-        const testPath = path.resolve(publicDir, relativeLogoPath);
-        try {
-          // Check if file exists synchronously (for better error handling)
-          const fsSync = require('fs');
-          if (fsSync.existsSync(testPath)) {
-            filePath = testPath;
-            break;
-          }
-        } catch (e) {
-          // Continue to next path
-        }
-      }
-      
-      // If file found, read and convert to base64
-      if (filePath) {
-        try {
-          const buffer = await fs.readFile(filePath);
+      const publicDir = path.resolve(__dirname, '../public');
+      // If `companyData.logo` was '/uploads/..', this resolves to '<project>/server/public/uploads/...'
+      const filePath = path.resolve(publicDir, relativeLogoPath);
+
+      // Attempt to read the file and convert to base64 data URL
+      return fs.readFile(filePath)
+        .then(buffer => {
           const ext = path.extname(filePath).toLowerCase().replace('.', '') || 'png';
           const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
           return `data:${mime};base64,${buffer.toString('base64')}`;
-        } catch (readError) {
-          console.log('⚠️ Could not read logo file, using HTTP fallback:', readError.message);
-        }
-      }
-      
-      // Fallback to constructing an absolute URL served by Express '/uploads'
-      const baseUrl = process.env.SERVER_PUBLIC_URL
-        || process.env.PUBLIC_BASE_URL
-        || (process.env.NODE_ENV === 'development'
-              ? 'http://localhost:5000'
-              : (process.env.VPS_IP ? `http://${process.env.VPS_IP}:5000` : 'http://127.0.0.1:5000'));
+        })
+        .catch(() => {
+          // Fallback to constructing an absolute URL served by Express '/uploads'
+          const baseUrl = process.env.SERVER_PUBLIC_URL
+            || process.env.PUBLIC_BASE_URL
+            || (process.env.NODE_ENV === 'development'
+                  ? 'http://localhost:5000'
+                  : (process.env.VPS_IP ? `http://${process.env.VPS_IP}:5000` : 'http://127.0.0.1:5000'));
 
-      const httpPath = companyData.logo.startsWith('/')
-        ? companyData.logo
-        : `/uploads/${companyData.logo}`;
-      return `${baseUrl}${httpPath}`;
+          const httpPath = companyData.logo.startsWith('/')
+            ? companyData.logo
+            : `/uploads/${companyData.logo}`;
+          return `${baseUrl}${httpPath}`;
+        });
     } catch (error) {
       console.error('Error getting logo URL:', error);
       return null;
@@ -540,7 +406,6 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             .company-details {
                 text-align: center;
                 flex: 1;
-                margin-top: 10px;
             }
             
             .company-name {
@@ -1297,16 +1162,6 @@ const generateScopeOfWorkSection = (quotationData) => {
   
   console.log('🔍 Debug - scopeOfWorkFields:', JSON.stringify(scopeOfWorkFields, null, 2));
   
-  // Debug: Check for category and title in items
-  if (scopeOfWorkFields.length > 0) {
-    console.log('🔍 First item sample:', JSON.stringify(scopeOfWorkFields[0], null, 2));
-    scopeOfWorkFields.forEach((item, idx) => {
-      if (item.category || item.servicesTitle || item.supplyTitle) {
-        console.log(`🔍 Item ${idx}: category=${item.category}, servicesTitle=${item.servicesTitle}, supplyTitle=${item.supplyTitle}`);
-      }
-    });
-  }
-  
   if (!scopeOfWorkFields || scopeOfWorkFields.length === 0) {
     console.log('❌ No scope of work fields found');
     return '';
@@ -1323,108 +1178,31 @@ const generateScopeOfWorkSection = (quotationData) => {
         <table class="scope-table">
           <thead>
             <tr>
-              <th style="width: 95px;">Sr. No.</th>
-              <th style="width: 368px;">Description</th>
-              <th style="width: 40px;">QTY</th>
-              <th style="width: 55px;">Unit</th>
-              <th style="width: 75px;">Price (US $)</th>
-              <th style="width: 75px;">Total Price (US $)</th>
+              <th style="width: 50px;">Sr. No.</th>
+              <th>Description</th>
+              <th style="width: 60px;">QTY</th>
+              <th style="width: 80px;">Unit</th>
+              <th style="width: 100px;">Price (US $)</th>
+              <th style="width: 100px;">Total Price (US $)</th>
             </tr>
           </thead>
           <tbody>
     `;
     
-    // Calculate subtotal from all items
-    const subtotal = scopeOfWorkFields.reduce((sum, item) => {
-      return sum + (parseFloat(item.total || 0));
-    }, 0);
-    
-    // Group items by category and title (if they exist)
-    let lastCategory = null;
-    let lastTitle = null;
-    
-    scopeOfWorkFields.forEach((item, index) => {
-      // Check if this item has a different category or title than the previous one
-      const currentCategory = item.category || '';
-      const currentTitle = currentCategory === 'supply' ? (item.supplyTitle || '') : (item.servicesTitle || '');
-      
-      console.log(`🔍 Item ${index}: category="${currentCategory}", supplyTitle="${item.supplyTitle || ''}", servicesTitle="${item.servicesTitle || ''}", currentTitle="${currentTitle}"`);
-      
-      // Add title row if:
-      // 1. This is the first item and has a title, OR
-      // 2. Category/title changed from previous item
-      const shouldShowTitle = currentTitle && currentTitle.trim() !== '' && (
-        index === 0 || 
-        currentCategory !== lastCategory || 
-        currentTitle !== lastTitle
-      );
-      
-      if (shouldShowTitle) {
-        // Show only the title, without the category label
-        // Title appears in Description column and spans to the end without vertical borders after Description
-        const titleText = currentTitle;
-        console.log(`✅ Adding title row: "${titleText}"`);
-        scopeOfWorkHTML += `
-          <tr>
-            <td style="background-color: #fff; padding: 3px; border: 1px solid #000; border-right: 1px solid #000;"></td>
-            <td colspan="5" style="background-color: #fff; padding: 3px; font-weight: bold; font-style: italic; font-size: 10px; text-decoration: underline; color: #d32f2f; text-align: left; border: 1px solid #000; border-left: none;">
-              ${titleText}
-            </td>
-          </tr>
-        `;
-        lastCategory = currentCategory;
-        lastTitle = currentTitle;
-      } else if (currentTitle && currentTitle.trim() !== '') {
-        console.log(`⏭️ Skipping title row for item ${index} (same as previous)`);
-      } else {
-        console.log(`⏭️ Skipping title row for item ${index} (no title)`);
-      }
-      
+    scopeOfWorkFields.forEach(item => {
       scopeOfWorkHTML += `
         <tr>
           <td>${item.srNo || ''}</td>
           <td class="description">${item.description || ''}</td>
-          <td style="font-weight: bold;">${item.qty || 0}</td>
-          <td style="font-weight: bold;">${item.unit || ''}</td>
-          <td style="text-align: right; font-weight: bold;">${parseFloat(item.price || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="text-align: right; font-weight: bold;">${parseFloat(item.total || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td>${item.qty || 0}</td>
+          <td>${item.unit || ''}</td>
+          <td>₨${parseFloat(item.price || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td>₨${parseFloat(item.total || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `;
     });
     
-    // Add two subtotal rows at the end
     scopeOfWorkHTML += `
-        <tr>
-          <td style="background-color: #ffff00; padding: 2px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: 1px solid #000;"></td>
-          <td style="background-color: #ffff00; padding: 2px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;"></td>
-          <td style="background-color: #ffff00; padding: 2px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;"></td>
-          <td style="background-color: #ffff00; padding: 2px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;"></td>
-          <td style="background-color: #ffff00; padding: 2px 4px; color: #71a17b; font-weight: bold; font-size: 8px; font-style: italic; text-align: right; border-right: 1px solid #000; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;">Sub Total</td>
-          <td style="background-color: #ffff00; padding: 2px 4px; color: #71a17b; font-weight: bold; font-size: 8px; text-align: right; border-right: 1px solid #000; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;">${subtotal.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-        </tr>
-        <tr>
-          <td style="background-color: #ffc000; padding: 4px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: 1px solid #000;"></td>
-          <td style="background-color: #ffc000; padding: 4px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;"></td>
-          <td style="background-color: #ffc000; padding: 4px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;"></td>
-          <td style="background-color: #ffc000; padding: 4px 4px; border-right: none; border-top: 1px solid #000; border-bottom: 1px solid #000; border-left: none;"></td>
-          <td style="background-color: #ffc000; padding: 4px 4px; font-weight: bold; text-align: right; border-right: 1px solid #000; border-top: 1px solid #000; border-bottom: 1px solid #000; font-size: 8px; border-left: none;">Sub Total</td>
-          <td style="background-color: #ffc000; padding: 4px 4px; font-weight: bold; border-right: 1px solid #000; border-top: 1px solid #000; border-bottom: 1px solid #000; font-size: 8px; border-left: none;"><span style="float: left;">$</span><span style="float: right;">${subtotal.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
-        </tr>
-        <tr>
-          <td colspan="4" style="border-right: none; border-top: none; border-bottom: none; border-left: 1px solid #000;"></td>
-          <td style="padding: 2px 4px; text-align: right; border: 1px solid #000; font-size: 8px; font-weight: bold;">GST @ ${quotationData.gstPercentage || 0}%:</td>
-          <td style="padding: 2px 4px; border: 1px solid #000; font-size: 8px; font-weight: bold;"><span style="float: left;">$</span><span style="float: right;">${parseFloat(quotationData.gstAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></td>
-        </tr>
-        <tr>
-          <td colspan="4" style="border-right: none; border-top: none; border-bottom: none; border-left: 1px solid #000;"></td>
-          <td style="padding: 2px 4px; text-align: right; border: 1px solid #000; font-size: 8px; font-weight: bold;">PST @ ${quotationData.pstPercentage || 0}%:</td>
-          <td style="padding: 2px 4px; border: 1px solid #000; font-size: 8px; font-weight: bold;"><span style="float: left;">$</span><span style="float: right;">${parseFloat(quotationData.pstAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></td>
-        </tr>
-        <tr>
-          <td colspan="4" style="border-right: none; border-top: none; border-bottom: none; border-left: 1px solid #000;"></td>
-          <td style="padding: 2px 4px; text-align: right; border: 1px solid #000; font-size: 8px; font-weight: bold;">Grand Total:</td>
-          <td style="padding: 2px 4px; border: 1px solid #000; font-size: 8px; font-weight: bold;"><span style="float: left;">$</span><span style="float: right;">${parseFloat(quotationData.totalAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></td>
-        </tr>
           </tbody>
         </table>
       </div>
@@ -1506,7 +1284,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
   };
 
   // Helper function to get logo URL (absolute URL or inline data URI)
-  const getLogoUrl = async () => {
+  const getLogoUrl = () => {
     try {
     if (!companyData.logo) {
       return null;
@@ -1523,52 +1301,30 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
         : `uploads/${companyData.logo}`.replace(/^\//, '');
 
       // Try to inline from local filesystem to avoid CORS/network issues in Puppeteer
-      // Try multiple possible paths for better localhost compatibility
-      const possibleDirs = [
-        path.resolve(__dirname, '../public'),
-        path.resolve(__dirname, '../../public'),
-        path.resolve(process.cwd(), 'server/public'),
-        path.resolve(process.cwd(), 'public')
-      ];
-      
-      let filePath = null;
-      for (const publicDir of possibleDirs) {
-        const testPath = path.resolve(publicDir, relativeLogoPath);
-        try {
-          // Check if file exists synchronously (for better error handling)
-          const fsSync = require('fs');
-          if (fsSync.existsSync(testPath)) {
-            filePath = testPath;
-            break;
-          }
-        } catch (e) {
-          // Continue to next path
-        }
-      }
-      
-      // If file found, read and convert to base64
-      if (filePath) {
-        try {
-          const buffer = await fs.readFile(filePath);
+      const publicDir = path.resolve(__dirname, '../public');
+      // If `companyData.logo` was '/uploads/..', this resolves to '<project>/server/public/uploads/...'
+      const filePath = path.resolve(publicDir, relativeLogoPath);
+
+      // Attempt to read the file and convert to base64 data URL
+      return fs.readFile(filePath)
+        .then(buffer => {
           const ext = path.extname(filePath).toLowerCase().replace('.', '') || 'png';
           const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
           return `data:${mime};base64,${buffer.toString('base64')}`;
-        } catch (readError) {
-          console.log('⚠️ Could not read logo file, using HTTP fallback:', readError.message);
-        }
-      }
-      
-      // Fallback to constructing an absolute URL served by Express '/uploads'
-      const baseUrl = process.env.SERVER_PUBLIC_URL
-        || process.env.PUBLIC_BASE_URL
-        || (process.env.NODE_ENV === 'development'
-              ? 'http://localhost:5000'
-              : (process.env.VPS_IP ? `http://${process.env.VPS_IP}:5000` : 'http://127.0.0.1:5000'));
-
-      const httpPath = companyData.logo.startsWith('/')
-        ? companyData.logo
-        : `/uploads/${companyData.logo}`;
-      return `${baseUrl}${httpPath}`;
+        })
+        .catch(() => {
+          // Fallback to constructing an absolute URL served by Express '/uploads'
+          const baseUrl = process.env.SERVER_PUBLIC_URL
+            || process.env.PUBLIC_BASE_URL
+            || (process.env.NODE_ENV === 'development'
+      ? 'http://localhost:5000' 
+                  : (process.env.VPS_IP ? `http://${process.env.VPS_IP}:5000` : 'http://127.0.0.1:5000'));
+    
+          const httpPath = companyData.logo.startsWith('/')
+      ? companyData.logo 
+      : `/uploads/${companyData.logo}`;
+          return `${baseUrl}${httpPath}`;
+        });
     } catch (_) {
       return null;
     }
@@ -1590,7 +1346,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             body {
                 font-family: Arial, sans-serif;
-                font-size: 7px;
+                font-size: 8px;
                 line-height: 1.1;
                 color: #000;
                 background: #fff;
@@ -1599,15 +1355,15 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             .container {
                 max-width: 800px;
                 margin: 0 auto;
-                padding: 4px;
+                padding: 6px;
             }
             
             .header {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
-                margin-bottom: 4px;
-                padding-bottom: 2px;
+                margin-bottom: 8px;
+                padding-bottom: 4px;
             }
             
             .logo-section {
@@ -1615,47 +1371,39 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 flex-direction: column;
                 align-items: flex-start;
                 flex: 1;
-                margin-left: 8px;
-                position: relative;
-                top: 4px;
             }
             
             .logo {
-                width: 180px;
+                width: 150px;
                 height: auto;
-                margin: 0 0 2px 0;
+                margin: 0 0 4px 0;
                 border: none;
-                transform: skewX(-10deg);
             }
             
             .logo-placeholder {
-                width: 120px;
-                height: 35px;
-                margin: 0 0 2px 0;
+                width: 150px;
+                height: 45px;
+                margin: 0 0 4px 0;
                 border: 1px solid #ddd;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 background: #f5f5f5;
-                font-size: 7px;
-                font-weight: bold;
-                font-style: italic;
+                font-size: 8px;
                 text-align: center;
                 color: #666;
             }
             
             .tagline {
-                font-size: 14px;
+                font-size: 10px;
                 font-weight: bold;
-                margin-top: 2px;
-                font-family: 'Calibri', sans-serif;
+                margin-top: 4px;
             }
             
             .company-details {
                 text-align: right;
                 flex: 1;
                 margin-left: 0;
-                margin-top: 20px;
                 display: flex;
                 flex-direction: column;
                 align-items: flex-end;
@@ -1664,23 +1412,20 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             .company-name {
                 font-size: 14px;
                 font-weight: bold;
-                color: #528dc2;
+                margin-bottom: 3px;
+                color: #1f6feb;
             }
             
             .company-info {
-                font-size: 10px;
-                line-height: 1.1;
+                font-size: 9px;
+                line-height: 1.2;
                 color: #000;
                 display: flex;
                 justify-content: flex-end;
-                gap: 2px;
+                gap: 6px;
                 align-items: center;
                 font-weight: 600;
                 white-space: nowrap;
-                text-align: right;
-                margin-left: auto;
-                padding-left: 50px;
-                margin-top: 2px;
             }
             
             .company-info span {
@@ -1689,33 +1434,26 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             
             .quotation-title {
                 text-align: center;
-                font-size: 20px;
+                font-size: 16px;
                 font-weight: bold;
-                background: #bfbfbf;
-                padding: 3px;
+                
+                background: #D3D3D3;
+                padding: 6px;
                 border: 1px solid #000;
             }
             
             .quotation-header-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 4px;
+                margin-bottom: 8px;
                 border: 1px solid #000;
             }
             
             .quotation-header-table td {
-                padding: 2px 3px;
-                vertical-align: top;
                 border: 1px solid #000;
-
-            }
-            
-            .quotation-header-table td:first-child {
-                width: 65%;
-            }
-            
-            .quotation-header-table td:last-child {
-                width: 35%;
+                padding: 4px;
+                vertical-align: top;
+                width: 50%;
             }
             
             .section-title {
@@ -1729,8 +1467,8 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             .detail-row {
                 display: flex;
                 align-items: center;
-                padding: 1px 2px;
-                min-height: 12px;
+                padding: 2px 4px;
+                min-height: 16px;
             }
             
             .detail-row:last-child {
@@ -1738,22 +1476,18 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             }
             
             .detail-label {
-                min-width: 90px;
-                font-size: 8px;
-            }
-            
-            .detail-label.section-header {
                 font-weight: bold;
+                min-width: 100px;
                 text-decoration: underline;
+                font-size: 9px;
             }
             
             .detail-value {
                 text-decoration: underline;
-                margin-left: 4px;
+                margin-left: 6px;
                 flex: 1;
-                font-size: 8px;
-                font-weight: bold;
-                text-align: left;
+                font-size: 9px;
+                text-align: right;
             }
             
             .quotation-details {
@@ -1785,240 +1519,122 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             .subject {
                 font-size: 10px;
                 font-weight: bold;
-                font-style: italic;
                 margin: 8px 0;
             }
             
-            .subject-value {
-                text-decoration: underline;
-                margin-left: 14px;
-                font-weight: bold;
-                font-size: 10px;
-                font-style: italic;
-            }
-            
             .scope-of-work-header {
-                background: #ffc000;
+                background: #ffff00;
                 color: #000;
                 font-weight: bold;
-                font-style: italic;
                 text-align: center;
                 padding: 3px;
                 border: 1px solid #000;
-                font-size: 20px;
+                font-size: 9px;
             }
             
             .scope-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-bottom: 3px;
-                table-layout: fixed;
+                margin-bottom: 6px;
             }
             
             .scope-table th {
-                background: #e7e6e6;
+                background: #f3f4f6;
                 border: 1px solid #000;
                 padding: 3px 4px;
                 text-align: center;
                 font-weight: bold;
-                font-style: italic;
-                font-size: 9px;
+                font-size: 8px;
             }
-            
-            .scope-table th:nth-child(2),
-            .scope-table td:nth-child(2) {
-                width: 365px;
-                max-width: 365px;
-            }
-            
-           
             
             .scope-table td {
                 border: 1px solid #000;
                 padding: 3px 4px;
                 text-align: center;
-                font-size: 7px;
+                font-size: 8px;
             }
             
             .scope-table .description {
                 text-align: left;
-                padding: 3px 4px !important;
-                overflow: hidden;
-                word-wrap: break-word;
-                font-family: Helvetica, Arial, sans-serif;
-                line-height: 1.3;
-            }
-            
-            /* Style lists within description cell to keep bullets inside */
-            .scope-table .description ul,
-            .scope-table .description ol {
-              list-style-position: inside;
-              padding-left: 0;
-              margin: 0;
-            }
-            
-            .scope-table .description ul {
-                list-style-type: disc;
-            }
-            
-            .scope-table .description ol {
-                list-style-type: decimal;
-            }
-            
-            .scope-table .description ul {
-              list-style: none;
-            }
-            
-            .scope-table .description li {
-              padding-left: 0;
-              text-indent: 0;
-              margin: 0;
-              font-size: 7px;
-              line-height: 1.3;
-              position: relative;
-              font-family: Helvetica, Arial, sans-serif;
-            }
-            
-            .scope-table .description ul li::before {
-              content: "•";
-              font-size: 9px;
-              margin-right: 2px;
-              display: inline-block;
-              vertical-align: middle;
-              font-family: Helvetica, Arial, sans-serif;
-            }
-            
-           
-            
-           
-            
-            /* Paragraphs and headings within description */
-            .scope-table .description p {
-                margin: 2px 0;
-                padding: 0;
-                font-family: Helvetica, Arial, sans-serif;
-            }
-            
-            .scope-table .description h1,
-            .scope-table .description h2,
-            .scope-table .description h3,
-            .scope-table .description h4,
-            .scope-table .description h5,
-            .scope-table .description h6 {
-                margin: 3px 0 2px 0;
-                padding: 0;
-                font-weight: bold;
-                font-family: Helvetica, Arial, sans-serif;
-            }
-            
-            .scope-table .description li {
-                font-family: Helvetica, Arial, sans-serif;
-            }
-            
-            /* Ensure content doesn't overflow */
-            .scope-table .description * {
-                max-width: 100%;
-                box-sizing: border-box;
-                font-family: Helvetica, Arial, sans-serif;
             }
             
             .totals-section {
                 display: flex;
                 justify-content: flex-end;
-                margin-bottom: 3px;
-                margin-top: 3px;
+                margin-bottom: 6px;
             }
             
             .totals-table {
                 width: 220px;
                 border-collapse: collapse;
-                border: 1px solid #000;
             }
             
             .totals-table td {
                 border: 1px solid #000;
-                padding: 2px 4px;
-                font-size: 8px;
+                padding: 3px 6px;
             }
             
             .totals-table .label {
-                text-align: right;
+                text-align: left;
                 font-weight: bold;
             }
             
             .totals-table .amount {
                 text-align: right;
+            }
+            
+            .totals-table .highlight {
+                background: #ffff00;
                 font-weight: bold;
             }
             
             .terms-section {
-                margin-bottom: 3px;
-                margin-top: -20px;
-                margin-left: 3px;
+                margin-bottom: 6px;
             }
             
             .terms-title {
-                font-size: 8px;
+                font-size: 9px;
                 font-weight: bold;
-                margin-bottom: 2px;
-                font-style: italic;
+                margin-bottom: 4px;
                 text-decoration: underline;
             }
             
             .terms-list {
                 display: flex;
                 flex-direction: column;
+                gap: 2px;
             }
             
             .terms-item {
                 display: flex;
                 align-items: center;
                 padding: 3px 0;
-                margin: 2px 0;
+                border-bottom: 1px solid #e5e7eb;
             }
             
             .terms-item.highlight {
                 background: #ffff00;
-                margin-top: 0;
-                margin-bottom: 0;
-                padding: 3px 0;
-            }
-            
-            .terms-item.highlight + .terms-item.highlight {
-                margin-top: 0;
-            }
-            
-            .terms-item:not(.highlight) + .terms-item.highlight {
-                margin-top: 2px;
-            }
-            
-            .terms-item.highlight + .terms-item:not(.highlight) {
-                margin-top: 1px;
+                padding: 4px;
+                border-radius: 2px;
             }
             
             .terms-label {
                 font-weight: bold;
-                min-width: 80px;
-                font-size: 8px;
+                min-width: 100px;
                 text-decoration: underline;
-                font-family: sans-serif;
             }
             
             .terms-value {
                 text-decoration: underline;
-                font-weight: bold;
-                margin-left: 120px;
-                font-size: 8px;
-                font-style: italic;
- 
+                margin-left: 6px;
             }
             
             .footer {
-                text-align: left;
-                font-size: 7px;
-                padding-top: 3px;
-                text-color: #000000;
-                background-color: #a6a6a6;
+                text-align: center;
+                font-size: 8px;
+                margin-top: 15px;
+                padding-top: 6px;
+                border-top: 1px solid #ccc;
             }
         </style>
     </head>
@@ -2035,9 +1651,9 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                         </div>
                     </div>
                     <div class="tagline">
-                        <span style="color:#0070c0;">Performance</span>, 
-                        <span style="color:#70ad47;">Integrity</span>, 
-                        <span style="color:#ff0000;">Quality</span>
+                        <span style="color:#1f6feb;">Performance</span>, 
+                        <span style="color:#16a34a;">Integrity</span>, 
+                        <span style="color:#ef4444;">Quality</span>
                     </div>
                 </div>
                 <div class="company-details">
@@ -2059,7 +1675,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                 <tr>
                     <td>
                         <div class="detail-row">
-                            <div class="detail-label section-header">Customer:</div>
+                            <div class="detail-label">Customer:</div>
                             <div class="detail-value">${clientData.companyName || '-'}</div>
                 </div>
                         <div class="detail-row">
@@ -2093,7 +1709,7 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
                     </td>
                     <td>
                         <div class="detail-row">
-                        <div class="detail-label section-header">From:</div>
+                        <div class="detail-label">From:</div>
                             <div class="detail-value">${companyData.name || 'Your Company'}</div>
                         </div>
                         <div class="detail-row">
@@ -2129,10 +1745,37 @@ const generateQuotationHTML = async (quotationData, clientData, userData, compan
             </table>
             
             <!-- Subject -->
-            <div class="subject">Subject:<span class="subject-value">${quotationData.title}</span></div>
+            <div class="subject">Subject: ${quotationData.title}</div>
             
             <!-- Scope of Work Section -->
             ${generateScopeOfWorkSection(quotationData)}
+            
+            <!-- Totals -->
+            <div class="totals-section">
+                <table class="totals-table">
+                    <tr class="highlight">
+                        <td class="label">Sub Total:</td>
+                        <td class="amount">${formatCurrency(quotationData.subtotal)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Total:</td>
+                        <td class="amount">${formatCurrency(quotationData.subtotal)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">PST:</td>
+                        <td class="amount">${formatCurrency(quotationData.pstAmount || 0)}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">GST:</td>
+                        <td class="amount">${formatCurrency(quotationData.gstAmount || 0)}</td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="label">G.Total:</td>
+                        <td class="amount">${formatCurrency(quotationData.totalAmount)}</td>
+                    </tr>
+                </table>
+            </div>
             
             <!-- Terms and Conditions -->
             <div class="terms-section">
@@ -2174,31 +1817,10 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     page.setDefaultNavigationTimeout(30000);
 
     console.log('📄 Setting page content...');
-    // Use more lenient wait strategy for localhost, but keep networkidle0 for server
-    const isLocalhost = process.env.NODE_ENV === 'development' || 
-                        !process.env.SERVER_PUBLIC_URL && 
-                        !process.env.PUBLIC_BASE_URL &&
-                        !process.env.VPS_IP;
-    
-    const waitStrategy = isLocalhost ? 'load' : 'networkidle0';
-    
-    try {
-      await page.setContent(html, { 
-        waitUntil: waitStrategy,
-        timeout: 30000 
-      });
-    } catch (waitError) {
-      // Fallback to domcontentloaded if load fails (more lenient)
-      if (isLocalhost && waitError.message.includes('timeout')) {
-        console.log('⚠️ Using fallback wait strategy for localhost...');
-        await page.setContent(html, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 30000 
-        });
-      } else {
-        throw waitError;
-      }
-    }
+    await page.setContent(html, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000 
+    });
 
     console.log('📄 Generating PDF...');
     const pdfOptions = {
