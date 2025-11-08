@@ -4,16 +4,132 @@ import { ButtonSpinner } from '../../../components/LoadingSpinner';
 import { Icons } from '../../../components/Icons/Icons';
 import { DynamicField } from '../types';
 import { useCurrency } from '../../../contexts/CurrencyContext';
+import { Editor } from '@tinymce/tinymce-react';
 
 // Scope of Work Item interface
 interface ScopeOfWorkItem {
   srNo: number;
+  category?: string; // 'services' or 'supply'
+  servicesTitle?: string;
+  supplyTitle?: string;
   description: string;
   qty: number;
   unit: string;
   price: number;
   total: number;
 }
+
+// TinyMCE Editor Component (isolated to prevent infinite loops)
+const TinyMCEEditor: React.FC<{
+  value: string;
+  onChange: (content: string) => void;
+}> = ({ value, onChange }) => {
+  const editorRef = useRef<any>(null);
+  const lastValueRef = useRef<string>(value);
+  const isUpdatingRef = useRef<boolean>(false);
+
+  const handleEditorChange = (content: string) => {
+    // Prevent infinite loop - only call onChange if content actually changed and not during our update
+    if (!isUpdatingRef.current && content !== lastValueRef.current) {
+      lastValueRef.current = content;
+      onChange(content);
+    }
+  };
+
+  // Sync external value changes to editor (but not if it's from our own onChange)
+  useEffect(() => {
+    if (editorRef.current) {
+      const currentContent = editorRef.current.getContent({ format: 'html' });
+      const normalizedValue = value || '';
+      const normalizedCurrent = currentContent || '';
+      const normalizedLast = lastValueRef.current || '';
+      
+      console.log('🔄 TinyMCE value sync check:', {
+        valueLength: normalizedValue.length,
+        currentLength: normalizedCurrent.length,
+        lastLength: normalizedLast.length,
+        valuesMatch: normalizedCurrent === normalizedValue,
+        isUpdating: isUpdatingRef.current
+      });
+      
+      // Only update if:
+      // 1. Value changed from outside (not from user typing)
+      // 2. Editor content doesn't match the value
+      // 3. We're not currently in an update cycle
+      const shouldUpdate = !isUpdatingRef.current && 
+                          normalizedValue !== normalizedLast && 
+                          normalizedCurrent !== normalizedValue;
+      
+      // Also update if editor is empty/placeholder but we have a value (loading existing data)
+      const isEmptyButHasValue = !isUpdatingRef.current &&
+                                normalizedValue && 
+                                (!normalizedCurrent || normalizedCurrent.trim() === '' || normalizedCurrent === '<p></p>' || normalizedCurrent === '<p><br></p>');
+      
+      if (shouldUpdate || isEmptyButHasValue) {
+        isUpdatingRef.current = true;
+        try {
+          editorRef.current.setContent(normalizedValue, { format: 'html' });
+          lastValueRef.current = normalizedValue;
+          console.log('✅ TinyMCE editor content updated from:', normalizedLast.substring(0, 30), 'to:', normalizedValue.substring(0, 50));
+        } catch (e) {
+          console.error('❌ Error setting TinyMCE content:', e);
+        }
+        // Reset flag after editor processes the update
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 200);
+      }
+    } else {
+      // Editor not ready yet, update the ref so it will be set when editor initializes
+      if (value) {
+        lastValueRef.current = value;
+        console.log('⏳ Editor not ready, storing value for later:', value.substring(0, 50));
+      }
+    }
+  }, [value]);
+
+  return (
+    <div className="w-full" style={{ minWidth: '300px' }}>
+      <Editor
+        apiKey={process.env.REACT_APP_TINYMCE_API_KEY || ''}
+        onInit={(evt, editor) => {
+          editorRef.current = editor;
+          const initialValue = value || '';
+          lastValueRef.current = initialValue;
+          console.log('🔧 TinyMCE editor initialized with value:', initialValue.substring(0, 50));
+          if (initialValue) {
+            // Use setTimeout to ensure editor is fully ready
+            setTimeout(() => {
+              editor.setContent(initialValue, { format: 'html' });
+              lastValueRef.current = initialValue;
+            }, 100);
+          }
+        }}
+        onEditorChange={handleEditorChange}
+        init={{
+          height: 200,
+          menubar: false,
+          plugins: [
+            'lists', 'link', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks',
+            'code', 'fullscreen', 'insertdatetime',
+            'media', 'table', 'help', 'wordcount'
+          ],
+          toolbar: 'undo redo | formatselect | ' +
+            'bold italic underline | forecolor backcolor | ' +
+            'alignleft aligncenter alignright | ' +
+            'bullist numlist | outdent indent | ' +
+            'removeformat | help',
+          content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+          placeholder: 'Enter description (supports headings, bullets, paragraphs)',
+          resize: true,
+          branding: false,
+          promotion: false,
+        }}
+      />
+    </div>
+  );
+};
 
 // Scope of Work Field Component
 const ScopeOfWorkField: React.FC<{
@@ -22,30 +138,191 @@ const ScopeOfWorkField: React.FC<{
 }> = ({ field, onChange }) => {
   const { format } = useCurrency();
   const items = field.value?.items || [];
+  
+  // Debug: Log items when they change to see if description is present
+  React.useEffect(() => {
+    console.log('📦 ScopeOfWorkField - Items loaded:', items.map((item: any, idx: number) => ({
+      index: idx,
+      hasDescription: !!item.description,
+      descriptionLength: item.description ? item.description.length : 0,
+      descriptionPreview: item.description ? item.description.substring(0, 50) : 'EMPTY'
+    })));
+  }, [items]);
+  
+  // Initialize category and title from field metadata or first item
+  const [category, setCategory] = React.useState<string>(
+    field.value?.currentCategory || 'services'
+  );
+  const [title, setTitle] = React.useState<string>(
+    field.value?.currentTitle || ''
+  );
+
+  // Initialize field value structure and metadata on mount
+  React.useEffect(() => {
+    // Ensure field.value has the proper structure with metadata
+    if (!field.value?.currentCategory && !field.value?.currentTitle) {
+      // Initialize metadata if not present
+      const firstItem = items.length > 0 ? items[0] : null;
+      const initialCategory = firstItem?.category || 'services';
+      const initialTitle = firstItem 
+        ? (initialCategory === 'supply' ? (firstItem.supplyTitle || '') : (firstItem.servicesTitle || ''))
+        : '';
+      
+      if (initialCategory !== category || initialTitle !== title) {
+        setCategory(initialCategory);
+        setTitle(initialTitle);
+        
+        // Initialize field metadata
+        onChange({
+          items: items,
+          currentCategory: initialCategory,
+          currentTitle: initialTitle
+        });
+      }
+    } else if (field.value?.currentCategory) {
+      // Use existing metadata
+      setCategory(field.value.currentCategory);
+      if (field.value.currentTitle) {
+        setTitle(field.value.currentTitle);
+      }
+    }
+  }, []); // Run only once on mount
+
+  // Auto-save category and title to field metadata whenever they change
+  const isSavingRef = React.useRef(false);
+  React.useEffect(() => {
+    // Skip if we're currently saving to avoid loops
+    if (isSavingRef.current) return;
+    
+    // Ensure field.value exists and has proper structure
+    const currentValue = field.value || { items: [] };
+    
+    // Only save if values actually changed
+    if (currentValue.currentCategory !== category || currentValue.currentTitle !== title.trim()) {
+      isSavingRef.current = true;
+      const updatedValue = {
+        items: currentValue.items || items,
+        currentCategory: category,
+        currentTitle: title.trim()
+      };
+      
+      console.log('💾 Auto-saving category/title to metadata:', updatedValue);
+      onChange(updatedValue);
+      
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 100);
+    }
+  }, [category, title]); // Run whenever category or title changes
+
+  // Ensure all items have category and title fields (migration for old items)
+  // Only run once when component mounts or when items length changes (new items added)
+  const migrationDoneRef = React.useRef<Set<number>>(new Set());
+  React.useEffect(() => {
+    // Check if any items are missing category/title fields
+    const itemsNeedingUpdate = items
+      .map((item: any, index: number) => ({ item, index }))
+      .filter(({ item, index }: { item: any; index: number }) => {
+        const needsUpdate = !item.category || (!item.servicesTitle && !item.supplyTitle);
+        const alreadyMigrated = migrationDoneRef.current.has(index);
+        return needsUpdate && !alreadyMigrated && items.length > 0;
+      });
+
+    if (itemsNeedingUpdate.length > 0) {
+      console.log('🔄 Found items missing category/title, updating...', itemsNeedingUpdate.length);
+      const updatedItems = items.map((item: any, index: number) => {
+        // If item is missing category/title and we haven't migrated it yet
+        if (!item.category || (!item.servicesTitle && !item.supplyTitle)) {
+          if (!migrationDoneRef.current.has(index)) {
+            migrationDoneRef.current.add(index);
+            const defaultCategory = category || 'services';
+            const defaultTitle = title || '';
+          
+            return {
+              ...item,
+              category: defaultCategory,
+              servicesTitle: defaultCategory === 'services' ? defaultTitle : '',
+              supplyTitle: defaultCategory === 'supply' ? defaultTitle : ''
+            };
+          }
+        }
+        return item;
+      });
+      
+      // Update if we actually changed something
+      const hasChanges = itemsNeedingUpdate.length > 0;
+      if (hasChanges) {
+        console.log('✅ Updating items with category/title fields:', updatedItems);
+        onChange({ items: updatedItems });
+      }
+    }
+    
+    // Reset migration tracking when items are completely replaced (e.g., new quotation)
+    if (items.length === 0) {
+      migrationDoneRef.current.clear();
+    }
+  }, [items.length]); // Only run when items length changes, not on every item change
 
   const addItem = () => {
-    const newItems = [...items, {
+    if (!title || title.trim() === '') {
+      alert('Please enter a title before adding an item. The title will be used in the PDF.');
+      return;
+    }
+    
+    const newItem = {
       srNo: items.length + 1,
+      category: category,
+      servicesTitle: category === 'services' ? title.trim() : '',
+      supplyTitle: category === 'supply' ? title.trim() : '',
       description: '',
       qty: 1,
       unit: '',
       price: 0,
       total: 0
-    }];
-    onChange({ items: newItems });
+    };
+    
+    console.log('➕ Adding new item with:', {
+      category,
+      title: title.trim(),
+      servicesTitle: newItem.servicesTitle,
+      supplyTitle: newItem.supplyTitle
+    });
+    
+    const newItems = [...items, newItem];
+    // Also save current category/title in field metadata for normalization
+    onChange({ 
+      items: newItems,
+      currentCategory: category,
+      currentTitle: title.trim()
+    });
   };
 
-  const updateItem = (index: number, field: keyof ScopeOfWorkItem, value: any) => {
+  const updateItem = (index: number, fieldKey: keyof ScopeOfWorkItem, value: any) => {
     const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
+    // Ensure item has all required fields with defaults
+    const currentItem = newItems[index] || {};
+    newItems[index] = {
+      srNo: currentItem.srNo || index + 1,
+      category: currentItem.category || 'services',
+      servicesTitle: currentItem.servicesTitle || '',
+      supplyTitle: currentItem.supplyTitle || '',
+      description: currentItem.description || '',
+      qty: currentItem.qty || 1,
+      unit: currentItem.unit || '',
+      price: currentItem.price || 0,
+      total: currentItem.total || 0,
+      ...currentItem, // Keep existing values
+      [fieldKey]: value // Update the specific field
+    };
     
     // Recalculate total
-    if (field === 'qty' || field === 'price') {
+    if (fieldKey === 'qty' || fieldKey === 'price') {
       newItems[index].total = newItems[index].qty * newItems[index].price;
     }
     
     // Update serial numbers
-    if (field === 'srNo') {
+    if (fieldKey === 'srNo') {
       newItems.forEach((item, idx) => {
         if (idx !== index) {
           item.srNo = idx + 1;
@@ -53,7 +330,13 @@ const ScopeOfWorkField: React.FC<{
       });
     }
     
-    onChange({ items: newItems });
+    // Always preserve metadata when updating items
+    const currentFieldValue = field.value || {};
+    onChange({ 
+      items: newItems,
+      currentCategory: currentFieldValue.currentCategory || category,
+      currentTitle: currentFieldValue.currentTitle || title.trim()
+    });
   };
 
   const removeItem = (index: number) => {
@@ -62,7 +345,13 @@ const ScopeOfWorkField: React.FC<{
     newItems.forEach((item: any, idx: number) => {
       item.srNo = idx + 1;
     });
-    onChange({ items: newItems });
+    // Always preserve metadata when removing items
+    const currentFieldValue = field.value || {};
+    onChange({ 
+      items: newItems,
+      currentCategory: currentFieldValue.currentCategory || category,
+      currentTitle: currentFieldValue.currentTitle || title.trim()
+    });
   };
 
   return (
@@ -76,6 +365,63 @@ const ScopeOfWorkField: React.FC<{
         >
           Add Item
         </button>
+      </div>
+
+      {/* Category and Title fields outside table */}
+      <div className="flex gap-4 items-center">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Category
+          </label>
+          <select
+            value={category}
+            onChange={(e) => {
+              const newCategory = e.target.value;
+              console.log('🔄 Category changed from', category, 'to', newCategory);
+              console.log('📝 Current title:', title);
+              setCategory(newCategory);
+              // Update field metadata when category changes
+              const updatedValue = {
+                ...field.value,
+                items: items,
+                currentCategory: newCategory,
+                currentTitle: title.trim()
+              };
+              console.log('💾 Saving category to field metadata:', updatedValue);
+              onChange(updatedValue);
+              // Keep the title when switching categories - user might want same title for both
+            }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="services">Services</option>
+            <option value="supply">Supply</option>
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {category === 'supply' ? 'Supply Title' : 'Services Title'}
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => {
+              const newTitle = e.target.value;
+              console.log('📝 Title changed:', newTitle);
+              setTitle(newTitle);
+              // Update field metadata when title changes so normalization can use it
+              const updatedValue = {
+                ...field.value,
+                items: items,
+                currentCategory: category,
+                currentTitle: newTitle.trim()
+              };
+              console.log('💾 Saving title to field metadata:', updatedValue);
+              onChange(updatedValue);
+            }}
+            placeholder={category === 'supply' ? 'Enter supply title (e.g., Part-A)' : 'Enter services title (e.g., Part-A)'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
       </div>
       
       <div className="overflow-x-auto">
@@ -118,17 +464,13 @@ const ScopeOfWorkField: React.FC<{
                   />
                 </td>
                 <td className="px-3 py-2 border-b border-gray-300 align-top">
-                  <textarea
-                    value={item.description}
-                    onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    onInput={(e) => {
-                      const el = e.currentTarget;
-                      el.style.height = 'auto';
-                      el.style.height = `${el.scrollHeight}px`;
+                  <TinyMCEEditor
+                    key={`editor-${index}-${items.length}`}
+                    value={item.description || ''}
+                    onChange={(content) => {
+                      console.log(`📝 Description changed for item ${index}:`, content.substring(0, 50));
+                      updateItem(index, 'description', content);
                     }}
-                    placeholder="Enter description"
-                    rows={2}
-                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm resize-y overflow-hidden leading-5"
                   />
                 </td>
                 <td className="px-3 py-2 border-b border-gray-300">
