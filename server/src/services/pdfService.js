@@ -329,7 +329,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
   // };
 
   const formatCurrency = (amount) => {
-    return `$${parseFloat(amount || 0).toLocaleString('en-US', {
+    return `$ ${parseFloat(amount || 0).toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     })}`;
@@ -486,24 +486,25 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             
             body {
                 font-family: 'Arial', sans-serif;
-                font-size: 14px;
-                line-height: 1.6;
+                font-size: 7px;
+                line-height: 1.2;
                 color: #333;
                 background: #fff;
             }
             
             .container {
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 40px;
+                max-width: 100%;
+                width: 100%;
+                margin: 0;
+                padding: 8px;
             }
             
             .header {
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
+                margin-bottom: 4px;
+                padding-bottom: 2px;
             }
             
             .logo-section {
@@ -511,54 +512,60 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 flex-direction: column;
                 align-items: flex-start;
                 flex: 1;
+                
             }
             
             .logo {
-                width: 200px;
+                width: 170px;
                 height: auto;
-                margin: 0 0 8px 0;
+                margin: 0 0 2px 0;
                 border: none;
+                margin-left: 5px;
             }
             
             .logo-placeholder {
-                width: 200px;
-                height: 60px;
-                margin: 0 0 8px 0;
+                width: 170px;
+                height: 50px;
+                margin: 0 0 2px 0;
                 border: 1px solid #ddd;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 background: #f9f9f9;
+                font-size: 6px;
             }
             
             .invoice-ref {
-                font-size: 12px;
-                color: #666;
+                font-size: 10px;
+                font-weight: bold;
+                font-family: tahoma;
+                text-decoration: underline;
                 margin-top: 5px;
             }
             
             .company-details {
                 text-align: center;
                 flex: 1;
-                margin-top: 10px;
+                margin-top: 2px;
+                margin-left: -15px;
             }
             
             .company-name {
-                font-size: 18px;
+                font-size: 15px;
                 font-weight: bold;
-                margin-bottom: 6px;
-                color: #1f6feb;
+                margin-bottom: 2px;
+                margin-top: -3px;
+                color: #3177b7;
             }
             
             .company-info {
-                font-size: 12px;
-                line-height: 1.4;
-                color: #000;
+                font-size: 8px;
+                line-height: 1.2;
                 display: flex;
                 justify-content: center;
-                gap: 16px;
+                gap: 6px;
                 align-items: center;
-                font-weight: 600;
+                font-weight: bold;
                 white-space: nowrap;
             }
             
@@ -567,50 +574,52 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .company-address {
-                font-size: 12px;
-                line-height: 1.4;
+                font-size: 8px;
+                line-height: 1.2;
                 color: #000;
                 text-align: center;
-                font-weight: 600;
-                margin-top: 4px;
+                font-weight: bold;
+                margin-top: 1px;
+                margin-left: -40px;
             }
             
             .company-address div {
-                margin-bottom: 2px;
+                margin-bottom: 1px;
             }
             
             .invoice-title {
                 text-align: center;
-                font-size: 20px;
+                font-size: 10px;
                 font-weight: bold;
-                margin: 15px 0;
+                margin: 4px 0;
                 color: #1f2937;
             }
             
             .invoice-number {
-                font-size: 16px;
+                font-size: 8px;
                 color: #2563eb;
                 font-weight: bold;
-                margin-bottom: 5px;
+                margin-bottom: 2px;
             }
             
             .status-badge {
                 display: inline-block;
-                padding: 6px 12px;
+                padding: 2px 6px;
                 background: ${getStatusColor(invoiceData.status)};
                 color: white;
-                border-radius: 20px;
-                font-size: 12px;
+                border-radius: 10px;
+                font-size: 6px;
                 font-weight: bold;
                 text-transform: uppercase;
-                margin-top: 10px;
+                margin-top: 2px;
             }
             
             .invoice-details {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 15px;
-                margin-top: 10px;
+                margin-bottom: 4px;
+                margin-top: 18px;
+                gap: 1px;
             }
             
             .invoice-left {
@@ -621,7 +630,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             .invoice-center {
                 flex: 1;
                 text-align: left;
-                padding: 0 20px;
+                margin-left: -65px;
             }
             
             .invoice-right {
@@ -630,81 +639,89 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .date-section {
-                margin-bottom: 10px;
+                margin-bottom: 3px;
             }
             
             .date-label {
                 font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
+                font-size: 10px;
+                font-family: tahoma;
+                margin-left: 24px;
             }
             
             .date-value {
                 font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
-                margin-top: 2px;
+                font-size: 10px;
+                margin-top: 4px;
+                margin-left: 4px;
+                font-family: tahoma;
+
             }
             
             .to-section {
-                margin-bottom: 10px;
+                margin-bottom: 3px;
             }
             
             .to-label {
                 font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
+                font-size: 10px;
+                font-family: tahoma;
             }
             
             .client-name {
                 font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
-                margin-top: 2px;
+                font-size: 10px;
+                margin-top: 4px;
+                font-family: tahoma;
             }
             
             .client-address {
                 font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
-                margin-top: 2px;
+                font-size: 10px;
+                margin-top: 3px;
+                font-family: tahoma;
             }
             
             .client-city {
                 font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
-                margin-top: 2px;
+                font-size: 10px;
+                margin-top: 3px;
                 text-decoration: underline;
+                font-family: tahoma;
             }
             
             .invoice-title-section {
                 text-align: right;
+                margin-right: 35px;
             }
             
             .invoice-title-text {
                 font-weight: bold;
-                font-size: 28px;
-                color: #1f2937;
+                font-size: 20px;
                 text-decoration: underline;
-                margin-bottom: 15px;
-                text-transform: uppercase;
+                margin-bottom: 3px;
+                margin-top: -10px;
+                font-family: tahoma;
+                letter-spacing: 5px;
             }
             
             .attn-section {
-                margin-top: 10px;
+                margin-top: 16px;
+               
             }
             
             .attn-label {
-                font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
+                font-size: 10px;
+                font-family: tahoma;
+                 position: relative;
+                left: -22px;
             }
             
             .attn-value {
-                font-weight: bold;
-                font-size: 14px;
-                color: #1f2937;
+                font-size: 10px;
+                font-family: tahoma;
+                position: relative;
+                left: 13px;
             }
             
             .billing-section p {
@@ -713,81 +730,91 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .scope-of-work-section {
-                margin-bottom: 15px;
+                margin-bottom: 4px;
                 position: relative;
             }
             
             .scope-table {
                 width: 100%;
                 border-collapse: collapse;
-                border: none;
+                border: none
+                border-spacing: 0;
+                table-layout: fixed;
             }
             
             .scope-table th {
                 background: #dc2626;
-                padding: 8px;
+                padding: 3px 4px;
                 text-align: left;
                 font-weight: bold;
                 color: #fff;
                 border: none;
-                border-bottom: 2px solid #000;
-                font-size: 12px;
-            }
-            
+                font-size: 7px;
+            } 
             .scope-table td {
-                padding: 8px;
+                padding: 3px 4px;
                 border: none;
-                font-size: 12px;
-                background: #fff;
+                font-size: 7px;
             }
+                
             
             .scope-table thead th:first-child,
             .scope-table tbody td:first-child {
                 text-align: center;
-                width: 8%;
+                width: 15%;
+                font-size: 10px;
+                font-family: tahoma;
             }
             
             .scope-table thead th:nth-child(2),
             .scope-table tbody td:nth-child(2) {
                 text-align: center;
-                width: 10%;
+                width: 15%;
+                 font-size: 10px;
+                font-family: tahoma;
             }
             
             .scope-table thead th:nth-child(3),
             .scope-table tbody td:nth-child(3) {
                 text-align: left;
-                width: 42%;
+                width: 15%;
             }
             
             .scope-table thead th:nth-child(4),
             .scope-table tbody td:nth-child(4) {
                 text-align: right;
-                width: 20%;
+                width: 30%;
             }
             
             .scope-table thead th:nth-child(5),
             .scope-table tbody td:nth-child(5) {
                 text-align: right;
-                width: 20%;
+                width: 25%;
+            }
+            
+            .scope-table tbody td:nth-child(3) {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                word-break: break-word;
             }
             
             .summary-section {
                 display: flex;
                 justify-content: flex-end;
-                margin-top: 20px;
+                margin-top: 4px;
             }
             
             .summary-box {
-                width: 300px;
+                width: 150px;
                 border: 2px solid #000;
-                background: #fff;
+                
             }
             
             .summary-line {
                 display: flex;
                 justify-content: space-between;
-                padding: 8px 12px;
-                font-size: 12px;
+                padding: 3px 6px;
+                font-size: 7px;
                 font-weight: bold;
                 border-bottom: 1px solid #000;
             }
@@ -798,16 +825,16 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             
             .total-due {
                 background: #fbbf24 !important;
-                padding: 8px 12px;
+                padding: 3px 6px;
                 font-weight: bold;
                 border-radius: 0;
             }
             
             .amount-words {
-                margin-top: 15px;
-                font-size: 12px;
-                color: #000;
-                font-weight: normal;
+                margin-top: 3px;
+                font-size: 10px;
+                font-family: tahoma;
+                font-weight: bold;
             }
             
             .amount-words strong {
@@ -817,28 +844,32 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             .amount-text {
                 font-style: italic;
                 text-decoration: underline;
+                margin-left: 18px;
+                font-size: 10px;
+                font-family: tahoma;
+                font-weight: bold;
             }
             
             .totals-section {
                 display: flex;
                 justify-content: flex-end;
-                margin-bottom: 40px;
+                margin-bottom: 4px;
             }
             
             .totals-table {
-                width: 300px;
+                width: 220px;
                 border-collapse: collapse;
             }
             
             .totals-table td {
-                padding: 4px 8px;
+                padding: 2px 4px;
                 border-bottom: 1px solid #e5e7eb;
-                font-size: 9px;
+                font-size: 7px;
             }
             
             .totals-table .total-row {
                 font-weight: bold;
-                font-size: 16px;
+                font-size: 9px;
                 background: #f3f4f6;
                 border-top: 2px solid #2563eb;
             }
@@ -894,21 +925,21 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             }
             
             .footer {
-                margin-top: 40px;
+                margin-top: 4px;
                 text-align: center;
-                padding-top: 20px;
+                padding-top: 2px;
                 border-top: 1px solid #e5e7eb;
                 color: #6b7280;
-                font-size: 12px;
+                font-size: 7px;
             }
             
             .footer p {
-                margin-bottom: 5px;
+                margin-bottom: 2px;
             }
             
             @media print {
                 .container {
-                    padding: 20px;
+                    padding: 8px;
                 }
                 
                 .status-badge {
@@ -976,39 +1007,39 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             </div>
             
             <!-- Separator Line -->
-              <div style="border-bottom: 1px solid #000; margin: 0 auto 20px auto; width: 90%;"></div>
+              <div style="border-bottom: 1px solid #000; margin: 0 auto 3px auto; width: 100%;"></div>
 
               <!-- Header Reference Section -->
-              <div style="display: flex; justify-content: center; align-items: flex-start; gap: 50px; margin: 0 auto 20px auto; width: 90%; text-align: center;">
-                  <div style="text-align: left;">
-                        <div style="font-weight: bold; text-decoration: underline; font-size: 12px;">ABS Ref:</div>
-                        <div style="font-size: 12px; margin-top: 5px;">Service Order No.</div>
-                        <div style="font-size: 12px; margin-top: 5px;">Dated:</div>
+              <div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px; margin: 0 auto 3px auto; width: 90%; text-align: center;">
+                  <div style="text-align: left; position: relative; left: -80px;">
+                        <div style="font-weight: bold; text-decoration: underline; font-size: 10px;font-family: tahoma;">ABS Ref:</div>
+                        <div style="font-size: 10px; margin-top: 1px;font-family: tahoma;">Service Order No.</div>
+                        <div style="font-size: 10px; margin-top: 1px;font-family: tahoma;">Dated:</div>
                     </div>
 
 
-                  <div>
-                      <div style="font-weight: bold; font-size: 12px;">SMS By Regional Office</div>
+                  <div style="position: relative; top: 13px; left: -68px;">
+                      <div style="font-weight: bold; font-size: 10px;font-family: tahoma;">SMS By Regional Office</div>
                   </div>
 
-                  <div>
-                      <div style="font-weight: bold; font-size: 12px;">Our Ref:</div>
-                      <div style="font-size: 12px; margin-top: 5px;">NTN: <strong style="text-decoration: underline;">${companyData.ntn || ''}</strong></div>
-                      <div style="font-size: 12px; margin-top: 5px;">GST: <strong style="text-decoration: underline;">${companyData.gst || ''}</strong></div>
+                  <div style="position: relative; right: -34px;">
+                      <div style="font-weight: bold; font-size: 10px;position: relative; left: -15px;font-family: tahoma;">Our Ref:</div>
+                      <div style="font-size: 10px; margin-top: 1px;font-family: tahoma;">NTN: <strong style="text-decoration: underline;font-family: tahoma; font-weight: bold;font-size: 10px;">${companyData.ntn || ''}</strong></div>
+                      <div style="font-size: 10px; margin-top: 1px;font-family: tahoma;">GST: <strong style="text-decoration: underline;font-family: tahoma; font-weight: bold;font-size: 10px;">${companyData.gst || ''}</strong></div>
                   </div>
               </div>
 
             
             <!-- Scope of Work Table -->
             <div class="scope-of-work-section">
-                <table class="scope-table" style="width: 100%; border-collapse: collapse; border: none;">
+                <table class="scope-table" style="width: 100%; border-collapse: collapse; border: none; table-layout: fixed;">
                 <thead>
                     <tr>
-                            <th style="background: #dc2626; padding: 8px; text-align: center; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 8%;">Qty.</th>
-                            <th style="background: #dc2626; padding: 8px; text-align: center; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 10%;">Unit</th>
-                        <th style="background: #dc2626; padding: 8px; text-align: left; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 42%;">Description</th>
-                            <th style="background: #dc2626; padding: 8px; text-align: right; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 20%;">Unit Price</th>
-                            <th style="background: #dc2626; padding: 8px; text-align: right; font-weight: bold; color: #fff; border: none; border-bottom: 2px solid #000; font-size: 12px; width: 20%;">Total</th>
+                            <th style="background: #ff0000; padding: 3px 4px; text-align: center; border: none;  font-size: 14px;font-family: tahoma; width: 17%;">Qty.</th>
+                            <th style="background: #ff0000; padding: 3px 4px; text-align: center;  border: none;  font-size: 14px;font-family: tahoma; width: 8%;">Unit</th>
+                        <th style="background: #ff0000; padding: 3px 4px; text-align: center;  border: none;  font-size: 14px;font-family: tahoma; width: 45%;">Description</th>
+                            <th style="background: #ff0000; padding: 3px 4px; text-align: center;  border: none;  font-size: 14px;font-family: tahoma; width: 23%;">Unit Price</th>
+                            <th style="background: #ff0000; padding: 3px 4px; text-align: center; border: none;  font-size: 14px;font-family: tahoma; width: 25%;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1070,21 +1101,21 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                             console.log('✅ Invoice PDF - Rendering scope of work items');
                             return scopeOfWorkFields.map(item => `
                               <tr>
-                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">${item.srNo || item.qty || 1}</td>
-                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">${item.unit || 'Job'}</td>
-                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: left;">${item.description || '-'}</td>
-                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(item.price || 0)}</td>
-                                  <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(item.total || 0)}</td>
+                                  <td style="padding: 3px 4px; border: none; font-size: 10px; font-family: tahoma; text-align: center;">${item.srNo || item.qty || 1}</td>
+                                  <td style="padding: 3px 4px; border: none; font-size: 10px; font-family: tahoma; text-align: center;">${item.unit || 'Job'}</td>
+                                  <td style="padding: 3px 4px; border: none; font-size: 10px; font-family: tahoma; text-align: left;">${item.description || '-'}</td>
+                                  <td style="padding: 3px 4px; border: none; font-size: 10px; font-family: tahoma; text-align: center;">${formatCurrency(item.price || 0)}</td>
+                                  <td style="padding: 3px 4px; border: none; font-size: 10px; font-family: tahoma; text-align: center;">${formatCurrency(item.total || 0)}</td>
                     </tr>
                             `).join('');
                           } else {
                             console.log('❌ Invoice PDF - No scope of work data found, using fallback');
                             return `<tr>
-                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">1</td>
-                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: center;">Job</td>
-                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: left;">${quotationData?.title || 'Professional Services'}</td>
-                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
-                              <td style="padding: 8px; border: none; font-size: 12px; background: #fff; text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
+                              <td style="padding: 3px 4px; border: none; font-size: 10px; font-family: tahoma; background: #fff; text-align: center;">1</td>
+                              <td style="padding: 3px 4px; border: none; font-size: 7px; background: #fff; text-align: center;">Job</td>
+                              <td style="padding: 3px 4px; border: none; font-size: 7px; background: #fff; text-align: left;">${quotationData?.title || 'Professional Services'}</td>
+                              <td style="padding: 3px 4px; border: none; font-size: 7px; background: #fff; text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
+                              <td style="padding: 3px 4px; border: none; font-size: 7px; background: #fff; text-align: right;">${formatCurrency(invoiceData.subtotal)}</td>
                             </tr>`;
                           }
                         })()}
@@ -1093,8 +1124,8 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             </div>
                 
                 <!-- Summary Section -->
-                <div class="summary-section" style="display: flex; justify-content: flex-end; margin-top: 20px;">
-                    <div style="width: 300px;">
+                <div class="summary-section" style="display: flex; justify-content: flex-end; margin-top: 35px;">
+                    <div style="width: 190px; position: relative; left: -20px;">
                         ${(() => {
                           // Calculate totals from scope of work data
                           let scopeOfWorkFields = [];
@@ -1145,19 +1176,19 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                           
                           return `
                             <div style="display: flex; align-items: stretch;">
-                                <div style="display: flex; flex-direction: column; justify-content: space-around; padding-right: 10px;">
-                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold; visibility: hidden;">Subtotal</div>
-                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">PRA @ ${Number(totalTaxPerc || 0).toFixed(2)}%:</div>
-                                    <div style="padding: 8px 0; font-size: 12px; font-weight: bold;">Total Due By [Date]:</div>
+                                <div style="display: flex; flex-direction: column; justify-content: space-around; padding-right: 5px;">
+                                    <div style="padding: 6px 0; font-size: 7px; font-weight: bold; visibility: hidden;">Subtotal</div>
+                                    <div style="padding: 6px 0; font-size: 10px; font-family: tahoma; margin-left: 18px;margin-bottom: 1px;">PRA @ ${Number(totalTaxPerc || 0).toFixed(2)}%</div>
+                                    <div style="padding: 6px 0; font-size: 10px; font-family: tahoma;">Total Due By [Date]:</div>
                                 </div>
                                 <div class="summary-box" style="border: 2px solid #000; background: #fff; flex: 1;">
-                                    <div style="padding: 8px 12px; font-size: 12px; font-weight: bold; text-align: right;">
+                                    <div style="padding: 6px 6px; font-size: 10px; font-family: tahoma; text-align: right;">
                                         ${formatCurrency(subtotal)}
                                     </div>
-                                    <div style="padding: 8px 12px; font-size: 12px; font-weight: bold; text-align: right;">
+                                    <div style="padding: 6px 6px; font-size: 10px;font-family: tahoma; text-align: right;">
                                         ${formatCurrency(tax)}
                                     </div>
-                                    <div style="padding: 8px 12px; font-size: 12px; font-weight: bold; text-align: right; background: #fbbf24;">
+                                    <div style="padding: 6px 6px; font-size: 10px; font-family: tahoma; text-align: right; background: #ffff00;">
                                         ${formatCurrency(total)}
                                     </div>
                                 </div>
@@ -1208,32 +1239,32 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             </div>
             
             <!-- Remarks -->
-            <div style="margin-top: 20px; font-size: 12px; font-weight: bold;">
+            <div style="margin-top: 5px; font-size: 10px; font-family: tahoma; font-weight: bold;">
                 Remarks:
             </div>
             
             <!-- Thank You Message -->
-            <div style="margin-top: 20px; text-align: center; font-size: 12px;">
+            <div style="margin-top: 3px; text-align: right; font-size: 10px; font-family: tahoma;font-weight: bold; position: relative; left: -35px;">
                 Thanks for your business with Spectrum Telecom (Pvt.) Ltd
             </div>
             
             <!-- Company Name -->
-            <div style="margin-top: 20px; font-size: 12px; font-weight: bold;">
+            <div style="margin-top: 3px; font-size: 10px; font-family: tahoma; font-weight: bold;">
                 ${companyData.name || 'Spectrum Telecom (Pvt.) Ltd'}
             </div>
             
             <!-- Signature and Recipient Information -->
-            <div style="margin-top: 15px;">
+            <div style="margin-top: 2px;">
                 <!-- Signature space -->
-                <div style="height: 50px; margin-bottom: 3px; text-align: left;">
-                    ${signatureBase64 ? `<img src="${signatureBase64}" alt="Chief Executive Signature" style="max-height: 50px; max-width: 180px; display: block;" />` : '<div style="height: 50px; width: 180px; margin-bottom: 3px;"></div>'}
+                <div style="height: 40px; margin-bottom: 1px; text-align: left;">
+                    ${signatureBase64 ? `<img src="${signatureBase64}" alt="Chief Executive Signature" style="max-height: 40px; max-width: 150px; display: block;" />` : '<div style="height: 40px; width: 150px; margin-bottom: 1px;"></div>'}
                 </div>
                 
                 <!-- Recipient Information -->
-                <div style="text-align: left; margin-top: 5px;">
-                    <div style="font-size: 11px; font-weight: bold; margin-bottom: 3px;">${companyData.recipientName || 'Ghania Khan'}</div>
-                    <div style="font-size: 11px; font-weight: bold; margin-bottom: 3px;">${companyData.recipientRole || 'Manager Commercial'}</div>
-                    <div style="font-size: 11px; color: #0066cc; text-decoration: underline;">${companyData.recipientEmail || 'ghania.khan@spectrumtele.com'}</div>
+                <div style="text-align: left; margin-top: 1px;">
+                    <div style="font-size: 10px; font-family: tahoma; font-weight: bold; margin-bottom: 1px;">${companyData.recipientName || 'Ghania Khan'}</div>
+                    <div style="font-size: 10px; font-family: tahoma; font-weight: bold; margin-bottom: 1px;">${companyData.recipientRole || 'Manager Commercial'}</div>
+                    <div style="font-size: 10px; font-family: tahoma; color: #2d7ccb; text-decoration: underline;">${companyData.recipientEmail || 'ghania.khan@spectrumtele.com'}</div>
                 </div>
             </div>
         </div>
@@ -1363,11 +1394,13 @@ const generateScopeOfWorkSection = (quotationData) => {
         // Show only the title, without the category label
         // Title appears in Description column and spans to the end without vertical borders after Description
         const titleText = currentTitle;
-        console.log(`✅ Adding title row: "${titleText}"`);
+        // Set color based on category: Services = #4181bb (blue), Supply = #d32f2f (red)
+        const titleColor = currentCategory === 'services' ? '#4181bb' : '#d32f2f';
+        console.log(`✅ Adding title row: "${titleText}" with color: ${titleColor} for category: ${currentCategory}`);
         scopeOfWorkHTML += `
           <tr>
             <td style="background-color: #fff; padding: 3px; border: 1px solid #000; border-right: 1px solid #000;"></td>
-            <td colspan="5" style="background-color: #fff; padding: 3px; font-weight: bold; font-style: italic; font-size: 10px; text-decoration: underline; color: #d32f2f; text-align: left; border: 1px solid #000; border-left: none;">
+            <td colspan="5" style="background-color: #fff; padding: 3px; font-weight: bold; font-style: italic; font-size: 10px; text-decoration: underline; color: ${titleColor}; text-align: left; border: 1px solid #000; border-left: none;">
               ${titleText}
             </td>
           </tr>
@@ -2290,7 +2323,7 @@ const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxTyp
     const html = await generateInvoiceHTML(invoiceData, clientData, quotationData, taxType);
     const pdf = await generatePDF(html, {
       displayHeaderFooter: false,
-      format: 'A4',
+      format: 'A5',
       printBackground: true,
       margin: {
         top: '0.5in',
