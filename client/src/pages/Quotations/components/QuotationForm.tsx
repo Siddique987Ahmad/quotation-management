@@ -1864,7 +1864,7 @@ const QuotationForm: React.FC<QuotationFormProps> = ({
     <div className="bg-white shadow-sm rounded-lg border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200">
         <h2 className="text-lg font-medium text-gray-900">
-          {isEdit ? 'Edit Quotation' : 'Create New Quotationss'}
+          {isEdit ? 'Edit Quotation' : 'Create New Quotation'}
         </h2>
         <p className="text-sm text-gray-500 mt-1">
           Drag any field to reorder the form layout. {isEdit ? 'Update quotation information with taxation options' : 'Create a new quotation with custom taxation and fields'}
