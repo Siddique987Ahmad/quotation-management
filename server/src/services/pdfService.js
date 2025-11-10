@@ -484,10 +484,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 box-sizing: border-box;
             }
             
-            @page {
-                size: A5;
-                margin: 0.5in;
-            }
+           
             
             body {
                 font-family: 'Arial', 'Helvetica', 'Tahoma', sans-serif;
@@ -546,6 +543,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-family: 'Tahoma', 'Arial', sans-serif;
                 text-decoration: underline;
                 margin-top: 5px;
+                color: black;
             }
             
             .company-details {
@@ -572,6 +570,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 align-items: center;
                 font-weight: bold;
                 white-space: nowrap;
+                color: black;
             }
             
             .company-info span {
@@ -586,6 +585,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-weight: bold;
                 margin-top: 1px;
                 margin-left: -40px;
+                color: black;
             }
             
             .company-address div {
@@ -652,6 +652,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-size: 10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
                 margin-left: 24px;
+                color: black;
             }
             
             .date-value {
@@ -660,6 +661,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 margin-top: 4px;
                 margin-left: 4px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
+                color: black;
 
             }
             
@@ -671,6 +673,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-weight: bold;
                 font-size: 10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
+                color: black;
             }
             
             .client-name {
@@ -678,6 +681,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-size: 10px;
                 margin-top: 4px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
+                color: black;
             }
             
             .client-address {
@@ -685,6 +689,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-size: 10px;
                 margin-top: 3px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
+                color: black;
             }
             
             .client-city {
@@ -693,6 +698,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 margin-top: 3px;
                 text-decoration: underline;
                 font-family: 'Tahoma', 'Arial', sans-serif;
+                color: black;
             }
             
             .invoice-title-section {
@@ -708,6 +714,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 margin-top: -10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
                 letter-spacing: 5px;
+                color: black;
             }
             
             .attn-section {
@@ -719,14 +726,14 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-size: 10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
                  position: relative;
-                left: -22px;
+                left: -10px;
             }
             
             .attn-value {
                 font-size: 10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
                 position: relative;
-                left: 13px;
+                left: 20px;
             }
             
             .billing-section p {
@@ -840,6 +847,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-size: 10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
                 font-weight: bold;
+                color: black;
             }
             
             .amount-words strong {
@@ -853,6 +861,7 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 font-size: 10px;
                 font-family: 'Tahoma', 'Arial', sans-serif;
                 font-weight: bold;
+                color: black;
             }
             
             .totals-section {
@@ -1016,21 +1025,21 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
 
               <!-- Header Reference Section -->
               <div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px; margin: 0 auto 3px auto; width: 90%; text-align: center;">
-                  <div style="text-align: left; position: relative; left: -80px;">
-                        <div style="font-weight: bold; text-decoration: underline; font-size: 10px;font-family: 'Tahoma', 'Arial', sans-serif;">ABS Ref:</div>
+                  <div style="text-align: left; position: relative; left: -68px;">
+                        <div style="font-weight: bold; color: black; text-decoration: underline; font-size: 10px;font-family: 'Tahoma', 'Arial', sans-serif;">ABS Ref:</div>
                         <div style="font-size: 10px; margin-top: 1px;font-family: 'Tahoma', 'Arial', sans-serif;">Service Order No.</div>
                         <div style="font-size: 10px; margin-top: 1px;font-family: 'Tahoma', 'Arial', sans-serif;">Dated:</div>
                     </div>
 
 
-                  <div style="position: relative; top: 13px; left: -68px;">
-                      <div style="font-weight: bold; font-size: 10px;font-family: 'Tahoma', 'Arial', sans-serif;">SMS By Regional Office</div>
+                  <div style="position: relative; top: 13px; left: -65px;">
+                      <div style="font-weight: bold; font-size: 10px;font-family: 'Tahoma', 'Arial', sans-serif;color: black;">SMS By Regional Office</div>
                   </div>
 
-                  <div style="position: relative; right: -34px;">
-                      <div style="font-weight: bold; font-size: 10px;position: relative; left: -15px;font-family: 'Tahoma', 'Arial', sans-serif;">Our Ref:</div>
-                      <div style="font-size: 10px; margin-top: 1px;font-family: 'Tahoma', 'Arial', sans-serif;">NTN: <strong style="text-decoration: underline;font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold;font-size: 10px;">${companyData.ntn || ''}</strong></div>
-                      <div style="font-size: 10px; margin-top: 1px;font-family: 'Tahoma', 'Arial', sans-serif;">GST: <strong style="text-decoration: underline;font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold;font-size: 10px;">${companyData.gst || ''}</strong></div>
+                  <div style="position: relative; right: -30px;">
+                      <div style="font-weight: bold; font-size: color: black; 10px;position: relative; left: -16px;font-family: 'Tahoma', 'Arial', sans-serif;">Our Ref:</div>
+                      <div style="font-size: 10px; margin-top: 1px;font-family: 'Tahoma', 'Arial', sans-serif;">NTN: <strong style="text-decoration: underline;color: black;font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold;font-size: 10px;">${companyData.ntn || ''}</strong></div>
+                      <div style="font-size: 10px; margin-top: 1px;font-family: 'Tahoma', 'Arial', sans-serif;">GST: <strong style="text-decoration: underline;color: black;font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold;font-size: 10px;">${companyData.gst || ''}</strong></div>
                   </div>
               </div>
 
@@ -1244,17 +1253,17 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
             </div>
             
             <!-- Remarks -->
-            <div style="margin-top: 5px; font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold;">
+            <div style="margin-top: 5px; font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; color: black; font-weight: bold;">
                 Remarks:
             </div>
             
             <!-- Thank You Message -->
-            <div style="margin-top: 3px; text-align: right; font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif;font-weight: bold; position: relative; left: -35px;">
+            <div style="margin-top: 3px; text-align: right; font-size: 10px; color: black; font-family: 'Tahoma', 'Arial', sans-serif;font-weight: bold; position: relative; left: -35px;">
                 Thanks for your business with Spectrum Telecom (Pvt.) Ltd
             </div>
             
             <!-- Company Name -->
-            <div style="margin-top: 3px; font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold;">
+            <div style="margin-top: 3px; font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; color: black; font-weight: bold;">
                 ${companyData.name || 'Spectrum Telecom (Pvt.) Ltd'}
             </div>
             
@@ -1267,9 +1276,9 @@ const generateInvoiceHTML = async (invoiceData, clientData, quotationData, taxTy
                 
                 <!-- Recipient Information -->
                 <div style="text-align: left; margin-top: 1px;">
-                    <div style="font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold; margin-bottom: 1px;">${companyData.recipientName || 'Ghania Khan'}</div>
-                    <div style="font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold; margin-bottom: 1px;">${companyData.recipientRole || 'Manager Commercial'}</div>
-                    <div style="font-size: 10px; font-family: 'Tahoma', 'Arial', sans-serif; color: #2d7ccb; text-decoration: underline;">${companyData.recipientEmail || 'ghania.khan@spectrumtele.com'}</div>
+                    <div style="font-size: 10px; color: black; font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold; margin-bottom: 1px;">${companyData.recipientName || 'Ghania Khan'}</div>
+                    <div style="font-size: 10px; color: black; font-family: 'Tahoma', 'Arial', sans-serif; font-weight: bold; margin-bottom: 1px;">${companyData.recipientRole || 'Manager Commercial'}</div>
+                    <div style="font-size: 10px; color: black; font-family: 'Tahoma', 'Arial', sans-serif; color: #2d7ccb; text-decoration: underline;">${companyData.recipientEmail || 'ghania.khan@spectrumtele.com'}</div>
                 </div>
             </div>
         </div>
@@ -2336,7 +2345,7 @@ const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxTyp
         bottom: '0.5in',
         left: '0.5in'
       },
-      preferCSSPageSize: false
+      preferCSSPageSize: true
     });
 
     const taxSuffix = taxType.toLowerCase().replace(/_/g, '-');
