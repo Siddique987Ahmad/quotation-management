@@ -2337,7 +2337,7 @@ const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxTyp
     const html = await generateInvoiceHTML(invoiceData, clientData, quotationData, taxType);
     const pdf = await generatePDF(html, {
       displayHeaderFooter: false,
-      format: 'A4',
+      format: 'A5',
       printBackground: true,
       margin: {
         top: '0.5in',
@@ -2345,7 +2345,7 @@ const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxTyp
         bottom: '0.5in',
         left: '0.5in'
       },
-      preferCSSPageSize: false
+      preferCSSPageSize: true
     });
 
     const taxSuffix = taxType.toLowerCase().replace(/_/g, '-');
