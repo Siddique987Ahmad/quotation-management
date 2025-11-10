@@ -2357,6 +2357,10 @@ const generateAllInvoiceTaxVersions = async (invoiceData, clientData, quotationD
       const result = await generateInvoicePDF(invoiceData, clientData, quotationData, taxType);
       results[taxType.toLowerCase()] = result;
     }
+
+
+
+    
     
     return {
       success: true,
