@@ -19,6 +19,49 @@ const getSignatureBase64 = async () => {
 // Initialize browser instance
 let browser;
 
+// Helper function to find system Chrome/Chromium executable
+const findSystemChrome = () => {
+  const fs = require('fs');
+  const { execSync } = require('child_process');
+  
+  // Common Chrome/Chromium paths on Linux
+  const possiblePaths = [
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    '/usr/local/bin/chrome',
+    '/usr/local/bin/chromium',
+    process.env.CHROME_PATH,
+    process.env.CHROMIUM_PATH
+  ].filter(Boolean);
+  
+  // Try to find via which command
+  try {
+    const chromePath = execSync('which google-chrome 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (chromePath && fs.existsSync(chromePath)) {
+      return chromePath;
+    }
+  } catch (e) {}
+  
+  try {
+    const chromiumPath = execSync('which chromium-browser 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (chromiumPath && fs.existsSync(chromiumPath)) {
+      return chromiumPath;
+    }
+  } catch (e) {}
+  
+  // Check common paths
+  for (const chromePath of possiblePaths) {
+    if (chromePath && fs.existsSync(chromePath)) {
+      return chromePath;
+    }
+  }
+  
+  return null;
+};
+
 // Get or create browser instance with retry logic
 const getBrowser = async (retryCount = 0) => {
   try {
@@ -34,7 +77,9 @@ const getBrowser = async (retryCount = 0) => {
         fs.mkdirSync(customTempDir, { recursive: true });
       }
       
-      browser = await puppeteer.launch({
+      // Try to find system Chrome as fallback
+      const systemChrome = findSystemChrome();
+      const launchOptions = {
         headless: true,
         userDataDir: customTempDir,
         args: [
@@ -99,12 +144,79 @@ const getBrowser = async (retryCount = 0) => {
         handleSIGINT: false,
         handleSIGTERM: false,
         handleSIGHUP: false
-      });
+      };
+      
+      // Use system Chrome if available (will be set on retry if needed)
+      if (systemChrome) {
+        console.log(`🔍 System Chrome found at: ${systemChrome} (will use if needed)`);
+      }
+      
+      browser = await puppeteer.launch(launchOptions);
       console.log('✅ Browser launched successfully');
     }
     return browser;
   } catch (error) {
     console.error(`❌ Browser launch failed (attempt ${retryCount + 1}):`, error.message);
+    
+    // If Chrome not found, try system Chrome on first retry
+    if (error.message.includes('Could not find Chrome')) {
+      const systemChrome = findSystemChrome();
+      if (systemChrome && retryCount === 0) {
+        console.log(`🔧 Retrying with system Chrome at: ${systemChrome}`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Retry with system Chrome
+        try {
+          const os = require('os');
+          const path = require('path');
+          const customTempDir = path.join(os.tmpdir(), 'puppeteer-custom');
+          browser = await puppeteer.launch({
+            executablePath: systemChrome,
+            headless: true,
+            userDataDir: customTempDir,
+            args: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-gpu',
+              '--disable-web-security',
+              '--disable-features=VizDisplayCompositor',
+              '--no-first-run',
+              '--disable-extensions',
+              '--disable-default-apps',
+              '--disable-sync',
+              '--disable-translate',
+              '--hide-scrollbars',
+              '--mute-audio',
+              '--no-default-browser-check',
+              '--disable-blink-features=AutomationControlled'
+            ],
+            timeout: 30000,
+            protocolTimeout: 30000,
+            handleSIGINT: false,
+            handleSIGTERM: false,
+            handleSIGHUP: false
+          });
+          console.log('✅ Browser launched successfully with system Chrome');
+          return browser;
+        } catch (systemChromeError) {
+          console.error(`❌ System Chrome also failed:`, systemChromeError.message);
+        }
+      } else if (!systemChrome && retryCount === 0) {
+        console.error(`
+⚠️  Chrome/Chromium not found. Please install it using one of these methods:
+
+For Ubuntu/Debian:
+  sudo apt-get update
+  sudo apt-get install -y chromium-browser
+
+Or install via Puppeteer:
+  cd server && npx puppeteer browsers install chrome
+
+Or set CHROME_PATH environment variable to point to your Chrome executable.
+        `);
+      }
+    }
+    
     if (retryCount < 2) {
       console.log('🔄 Retrying browser launch...');
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -2109,10 +2221,31 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
     page.setDefaultNavigationTimeout(30000);
 
     console.log('📄 Setting page content...');
-    await page.setContent(html, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000 
-    });
+    // Use more lenient wait strategy for localhost, but keep networkidle0 for server
+    const isLocalhost = process.env.NODE_ENV === 'development' || 
+                        !process.env.SERVER_PUBLIC_URL && 
+                        !process.env.PUBLIC_BASE_URL &&
+                        !process.env.VPS_IP;
+    
+    const waitStrategy = isLocalhost ? 'load' : 'networkidle0';
+    
+    try {
+      await page.setContent(html, { 
+        waitUntil: waitStrategy,
+        timeout: 30000 
+      });
+    } catch (waitError) {
+      // Fallback to domcontentloaded if load fails (more lenient)
+      if (isLocalhost && waitError.message.includes('timeout')) {
+        console.log('⚠️ Using fallback wait strategy for localhost...');
+        await page.setContent(html, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 30000 
+        });
+      } else {
+        throw waitError;
+      }
+    }
 
     console.log('📄 Generating PDF...');
     const pdfOptions = {
@@ -2199,12 +2332,42 @@ const generatePDF = async (html, options = {}, retryCount = 0) => {
 };
 
 // Generate invoice PDF with settings
+// const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxType = 'GST_AND_PST') => {
+//   try {
+//     const html = await generateInvoiceHTML(invoiceData, clientData, quotationData, taxType);
+//     const pdf = await generatePDF(html, {
+//       displayHeaderFooter: false,
+//       format: 'A5',
+//       printBackground: true,
+//       margin: {
+//         top: '0.5in',
+//         right: '0.5in',
+//         bottom: '0.5in',
+//         left: '0.5in'
+//       },
+//       preferCSSPageSize: true
+//     });
+
+//     const taxSuffix = taxType.toLowerCase().replace(/_/g, '-');
+    
+//     return {
+//       success: true,
+//       pdf,
+//       filename: `invoice-${invoiceData.invoiceNumber}-${taxSuffix}.pdf`
+//     };
+//   } catch (error) {
+//     console.error('Error generating invoice PDF:', error);
+//     throw new Error(`PDF generation failed: ${error.message}`);
+//   }
+// };
 const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxType = 'GST_AND_PST') => {
   try {
     const html = await generateInvoiceHTML(invoiceData, clientData, quotationData, taxType);
+    
+    // Enhanced PDF options for server compatibility
     const pdf = await generatePDF(html, {
       displayHeaderFooter: false,
-      format: 'A4',
+      format: 'A5',
       printBackground: true,
       margin: {
         top: '0.5in',
@@ -2212,7 +2375,12 @@ const generateInvoicePDF = async (invoiceData, clientData, quotationData, taxTyp
         bottom: '0.5in',
         left: '0.5in'
       },
-      preferCSSPageSize: true
+      preferCSSPageSize: true,
+      // Add these for better server compatibility
+      timeout: 30000,
+      waitForInitialPage: true,
+      emulateMedia: 'print', // Ensure print CSS is applied
+      scale: 1.0 // Force specific scale
     });
 
     const taxSuffix = taxType.toLowerCase().replace(/_/g, '-');
@@ -2238,6 +2406,10 @@ const generateAllInvoiceTaxVersions = async (invoiceData, clientData, quotationD
       const result = await generateInvoicePDF(invoiceData, clientData, quotationData, taxType);
       results[taxType.toLowerCase()] = result;
     }
+
+
+
+
     
     return {
       success: true,
