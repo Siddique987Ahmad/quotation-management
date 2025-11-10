@@ -51,7 +51,7 @@ const QuotationPageHeader: React.FC<QuotationPageHeaderProps> = ({
           <div className="w-4 h-4 mr-2">
             <Icons.ArrowLeft />
           </div>
-          <span>Back to Quotations</span>
+          <span>Backsss to Quotations</span>
         </button>
       )}
 
